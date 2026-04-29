@@ -1,0 +1,14 @@
+{
+  "symbol": "600000",
+  "status": "warning",
+  "warnings": [
+    "数据长度不足: 21 条"
+  ],
+  "stats": {
+    "data_length": 21,
+    "close_mean": 10.135714285714284,
+    "close_std": 0.1560631740216579,
+    "volume_mean": 60638313.76190476,
+    "volume_std": 21427031.240701485
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "total_duplicate_sets": 27,
+  "duplicates": {
+    "d41d8cd98f00b204e9800998ecf8427e": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_fix_report.md",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\local_db\\backup\\a_stock_20260408_224229.db-wal",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\logs\\v15_20260401_222423.log"
+    ],
+    "63f710705dec2882557d16f879cb9143": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\data_check_output.txt",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest\\data_check_output.txt"
+    ],
+    "b4b5c781ef58e5aafda81001d89107bc": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\.workbuddy\\data_validation_20260411_172528.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\.workbuddy\\data_validation_20260411_172650.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\.workbuddy\\data_validation_20260411_172746.json"
+    ],
+    "c55fc0734bab2f0606f02257afcf7638": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\.workbuddy\\data_validation_20260411_172631.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\.workbuddy\\data_validation_20260411_172659.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\.workbuddy\\data_validation_20260411_172747.json"
+    ],
+    "11b17bde095e474d54571b50fe87fb02": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest\\backup\\a_stock_20260410_132300.db",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest\\backup\\a_stock_20260410_132313.db",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backup\\a_stock_20260409_231640.db"
+    ],
+    "db1eea515bb9bcd59c909ad0adf7f800": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\001379_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\001379_20240101_20260410_qfq.pkl"
+    ],
+    "ec2bc9acfdf90361e9c2d7a6c7020ec1": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301501_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301501_20240101_20260410_qfq.pkl"
+    ],
+    "3d5c22afa9ce39ecc617b641c8c3587d": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301557_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301557_20240101_20260410_qfq.pkl"
+    ],
+    "9eb2d50ca631ec08f1484e11716f80bc": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301586_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301586_20240101_20260410_qfq.pkl"
+    ],
+    "425dac0a503242771d3c9e5ad24d27e5": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301601_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301601_20240101_20260410_qfq.pkl"
+    ],
+    "22ca00dc37682b2b15b328b3d3a665bf": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301665_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\301665_20240101_20260410_qfq.pkl"
+    ],
+    "c1c1015506391f2c4af46209f0aa737a": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603082_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603082_20240101_20260410_qfq.pkl"
+    ],
+    "9c5e9cba164ccf3bdfa340fb49e2f5cd": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603194_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603194_20240101_20260410_qfq.pkl"
+    ],
+    "735dbe29cd7877474c6d742ff0c6f162": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603284_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603284_20240101_20260410_qfq.pkl"
+    ],
+    "7686a6d1b9f775b65220c704384f5c79": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603325_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\603325_20240101_20260410_qfq.pkl"
+    ],
+    "78d37a4dfebfbd3a90cf9eac2a5fc2a6": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\688449_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\688449_20240101_20260410_qfq.pkl"
+    ],
+    "030deb2a0d02e5ed4709eaaee9bf91e0": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\688530_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\688530_20240101_20260410_qfq.pkl"
+    ],
+    "ba9e1b9f97be0e0a673a7139f0f3297d": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\688605_20210324_20260409_qfq.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\backtest_system\\cache\\market_data\\688605_20240101_20260410_qfq.pkl"
+    ],
+    "4b547ca2dc80d4b29d1c2608edbb6f80": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\market_data_cache\\0a549a1ac8b093f72e9b738720edbeb1.pkl",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\market_data_cache\\ef35c8363f985526db5c46ff490d8edb.pkl"
+    ],
+    "8af470d137b06fcbd1168286257169ef": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_194618.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_194920.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_195000.json"
+    ],
+    "a17a73b043839840ec31be38ac6b95da": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_201710.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_201748.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_201917.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_202035.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_202056.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_202108.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_202356.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_202426.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_202507.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_202656.json"
+    ],
+    "ecb995e6192174357f6c2021bb2913e7": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_203030.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_203335.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_203402.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_203446.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_203533.json"
+    ],
+    "b82817f34ce690f361fe21251b30a5a9": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_214457.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_214542.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_214934.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_215849.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_220031.json"
+    ],
+    "82e99f7f3d457c1defdd8fb163934e9f": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_221400.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_221508.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_221606.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_221645.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260408_221814.json"
+    ],
+    "e014c56d9da84319a670d825b027c321": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_205818.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_210119.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_210338.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_213755.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_213944.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_214052.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_214148.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_215120.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260409_215149.json"
+    ],
+    "4606be9818c24d5fbe8bebfb8e67c76e": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260410_100125.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260410_100353.json"
+    ],
+    "dfbfcf32a1795d67cabb3e60ab1bebd8": [
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260410_133203.json",
+      "C:\\Users\\21471\\WorkBuddy\\quant system\\reports\\backtest_reports\\backtest_result_20260410_134615.json"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "stats": {
+    "initial_cash": 1000000.0,
+    "final_value": 1149333.51,
+    "total_return": 14.93,
+    "annual_return": 15.6,
+    "sharpe_ratio": 0,
+    "max_drawdown": 10.11,
+    "max_drawdown_days": 90,
+    "calmar_ratio": 0,
+    "sqn": 0,
+    "total_trades": 0,
+    "win_rate": 0.0,
+    "profit_factor": 0.0,
+    "win_trades": 0,
+    "loss_trades": 0,
+    "annual_returns": {
+      "2024": 14.93
+    },
+    "trading_days": 242
+  },
+  "trades": [],
+  "daily_value": {
+    
