@@ -37,19 +37,18 @@ try:
     from behavioral_classic_factors import BehavioralClassicFactorCalculator
     bc_calc = BehavioralClassicFactorCalculator()
     bc_result = bc_calc.calculate_all(df)
-print("  CGO: %s" % bc_result.get("cgo_20d", 0)
-print("  VNSP: %s" % bc_result.get("vnsp_20d", 0)
-print("  CDE: %s" % bc_result.get("cde_20d", 0)
-print("  ΔDE: %s" % bc_result.get("dde_20d", 0)
-print("  动量: %s" % bc_result.get("momentum_raw", 0)
-print("  长期反转: %s" % bc_result.get("lt_rev_raw", 0)
-print("  质量因子: %s" % bc_result.get("quality_score", 0)
-print("  低波因子: %s" % bc_result.get("low_vol_score", 0)
-print("  复合调整系数: %s" % bc_result.get("composite_adjustment", 1.0)
+    print("  CGO: %s" % bc_result.get("cgo_20d", 0))
+    print("  VNSP: %s" % bc_result.get("vnsp_20d", 0))
+    print("  CDE: %s" % bc_result.get("cde_20d", 0))
+    print("  ΔDE: %s" % bc_result.get("dde_20d", 0))
+    print("  动量: %s" % bc_result.get("momentum_raw", 0))
+    print("  长期反转: %s" % bc_result.get("lt_rev_raw", 0))
+    print("  质量因子: %s" % bc_result.get("quality_score", 0))
+    print("  低波因子: %s" % bc_result.get("low_vol_score", 0))
+    print("  复合调整系数: %s" % bc_result.get("composite_adjustment", 1.0))
 except Exception as e:
-print("  错误: %s" % e)
+    print("  错误: %s" % e)
     import traceback
-
     traceback.print_exc()
 
 print("[运行完整因子引擎]")

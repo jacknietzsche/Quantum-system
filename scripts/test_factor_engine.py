@@ -44,8 +44,8 @@ for cat, score in result['category_scores'].items():
 print("\n[风险摘要]")
 risk = result['risk_summary']
 print("  总体信号: %s" % risk["overall_signal"])
-print("  预警(%s): %s" % risk["warning_count"], risk["warnings"] or "无")
-print("  正面(%s): %s" % risk["positive_count"], risk["positives"] or "无")
+print("  预警(%s): %s" % (risk["warning_count"], risk["warnings"] or "无"))
+print("  正面(%s): %s" % (risk["positive_count"], risk["positives"] or "无"))
 
-print("\n[因子总数] %s" % len(result["all_factors"])
+print("\n[因子总数] %s" % len(result["all_factors"]))
 print("[PASS] FactorEngineV2 测试通过")

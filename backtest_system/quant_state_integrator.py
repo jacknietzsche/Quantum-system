@@ -333,7 +333,8 @@ class QuantStateIntegrator:
 
                 if not np.isnan(corr):
                     ic_values[dt] = corr
-            except Exception:
+            except Exception as e:
+                logger.debug("IC calculation failed for date %s: %s", dt, e)
                 continue
 
         return pd.Series(ic_values)
@@ -421,7 +422,8 @@ class QuantStateIntegrator:
 
                 date_list.append(dt)
 
-            except Exception:
+            except Exception as e:
+                logger.debug("layered backtest failed for date %s: %s", dt, e)
                 continue
 
         if not date_list:

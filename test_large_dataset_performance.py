@@ -6,15 +6,11 @@
 
 import os
 import sys
-import logging
 import time
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 from core.data import UnifiedDataFetcher
 from backtest_system.backtest_engine import BacktestEngine

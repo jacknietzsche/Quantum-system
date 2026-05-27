@@ -15,8 +15,6 @@ backtest_v16_optimized.py — V16 优化版策略回测
 """
 
 import os
-import sys
-import logging
 import argparse
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -27,22 +25,15 @@ import quantstats as qs
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.config import QuantConfig, SelectionConfig
 from core.strategy import V16Scorer, StockFilter
 from core.data import UnifiedDataFetcher
+from core.logging_config import setup_logging, get_logger
 
 # 日志配置
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(os.path.join(PROJECT_ROOT, 'logs', 'backtest_v16.log'), encoding='utf-8')
-    ]
-)
-logger = logging.getLogger(__name__)
+setup_logging()
+logger = get_logger(__name__)
 
 
 def load_stock_data(data_provider, symbols, start_date, end_date):

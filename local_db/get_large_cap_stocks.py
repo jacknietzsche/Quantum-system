@@ -6,11 +6,11 @@
 import sqlite3
 import akshare as ak
 import time
-import logging
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-logger = logging.getLogger('get_large_cap')
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = ROOT / 'a_stock_quant.db'

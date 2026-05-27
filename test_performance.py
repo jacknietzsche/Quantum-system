@@ -6,15 +6,11 @@
 
 import os
 import sys
-import logging
 from datetime import datetime
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 from core.performance_tester import get_performance_tester
 from core.db_manager import get_db_manager

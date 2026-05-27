@@ -15,8 +15,6 @@ backtest_comprehensive_local.py — 全面的量化策略回测
 """
 
 import os
-import sys
-import logging
 import argparse
 from datetime import datetime, date
 from pathlib import Path
@@ -27,25 +25,18 @@ import matplotlib.pyplot as plt
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.config import QuantConfig, SelectionConfig
 from core.strategy import V16Scorer, StockFilter
 from core.data import UnifiedDataFetcher
+from core.logging_config import setup_logging, get_logger
 from backtest_system.backtest_engine import BacktestEngine
 from backtest_system.data_loader import DataLoader
 from backtest_system.config import BacktestConfig
 
 # 日志配置
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(os.path.join(PROJECT_ROOT, 'logs', 'backtest_comprehensive.log'), encoding='utf-8')
-    ]
-)
-logger = logging.getLogger(__name__)
+setup_logging()
+logger = get_logger(__name__)
 
 
 class V16StrategyAdapter:
@@ -283,8 +274,6 @@ def load_local_data(start_date, end_date):
     symbols = []
     db = None
     try:
-        # 添加本地数据库路径到系统路径
-        sys.path.insert(0, os.path.join(PROJECT_ROOT, 'local_db'))
         from 笨数据库 import 笨数据库
         
         # 初始化数据库连接
@@ -388,7 +377,6 @@ def load_local_data(start_date, end_date):
             
             try:
                 # 从本地数据库加载数据
-                sys.path.insert(0, os.path.join(PROJECT_ROOT, 'local_db'))
                 from 笨数据库 import 笨数据库
                 
                 db = 笨数据库(os.path.join(PROJECT_ROOT, 'local_db', 'a_stock_quant.db'))
@@ -654,8 +642,8 @@ def generate_report(result, benchmark, output_dir):
             if not isinstance(daily_returns.index, pd.DatetimeIndex):
                 try:
                     daily_returns.index = pd.to_datetime(daily_returns.index)
-                except Exception:
-                    pass  # 日期解析失败，使用原索引
+                except Exception as e:
+                    logger.debug("date index parsing failed: %s", e)
             
             # 生成quantstats报告
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

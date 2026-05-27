@@ -2,6 +2,10 @@
 回测系统全局配置
 =================
 所有模块的默认参数集中管理，支持运行时覆盖。
+
+注: TradeConfig 的默认值与 core/config.py 不同（佣金更低、滑点更高），
+这是有意为之 —— 回测使用更乐观的成本假设。
+PortfolioConfig / RiskConfig / FactorConfig 与 core 一致。
 """
 
 from dataclasses import dataclass, field

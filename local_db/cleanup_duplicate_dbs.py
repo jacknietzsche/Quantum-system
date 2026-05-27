@@ -62,30 +62,30 @@ def main():
     deleted_files = []
     for file_info in backup_files:
         print("\n处理备份: %s" % file_info['name'])
-print("  创建时间: %s" % file_info['mtime_str'])
-print("  文件大小: %.2f MB" % file_info['size'] / 1024 / 1024)
+        print("  创建时间: %s" % file_info['mtime_str'])
+        print("  文件大小: %.2f MB" % (file_info['size'] / 1024 / 1024))
         # 备份到清理备份目录
         backup_dest = os.path.join(CLEANUP_BACKUP_DIR, file_info['name'])
-print("  备份到: %s" % backup_dest)
+        print("  备份到: %s" % backup_dest)
         shutil.copy2(file_info['path'], backup_dest)
         
         # 删除原备份文件
-print("  删除原文件: %s" % file_info['path'])
+        print("  删除原文件: %s" % file_info['path'])
         os.remove(file_info['path'])
         deleted_files.append(file_info)
     
     # 生成操作报告
     print("=== 清理操作报告 ===")
     print("保留的数据库:")
-print("  文件名: %s" % current_db_info['name'])
-print("  创建时间: %s" % current_db_info['mtime_str'])
-print("  文件大小: %.2f MB" % current_db_info['size'] / 1024 / 1024)
+    print("  文件名: %s" % current_db_info['name'])
+    print("  创建时间: %s" % current_db_info['mtime_str'])
+    print("  文件大小: %.2f MB" % (current_db_info['size'] / 1024 / 1024))
     
-print("\n已删除的数据库 (%s 个):" % len(deleted_files)
+    print("\n已删除的数据库 (%s 个):" % len(deleted_files))
     for file_info in deleted_files:
-print("  文件名: %s" % file_info['name'])
-print("  创建时间: %s" % file_info['mtime_str'])
-print("  文件大小: %.2f MB" % file_info['size'] / 1024 / 1024)
+        print("  文件名: %s" % file_info['name'])
+        print("  创建时间: %s" % file_info['mtime_str'])
+        print("  文件大小: %.2f MB" % (file_info['size'] / 1024 / 1024))
     
     # 验证保留的数据库可正常访问
     print("=== 验证保留的数据库 ===")
@@ -98,23 +98,23 @@ print("  文件大小: %.2f MB" % file_info['size'] / 1024 / 1024)
         # 检查stocks表
         c.execute("SELECT COUNT(*) FROM stocks")
         stock_count = c.fetchone()[0]
-print("  股票数量: %s" % stock_count)
+        print("  股票数量: %s" % stock_count)
         
         # 检查daily_price表
         c.execute("SELECT COUNT(*) FROM daily_price")
         price_count = c.fetchone()[0]
-print("  行情记录: %s" % price_count)
+        print("  行情记录: %s" % price_count)
         
         # 检查日期范围
         c.execute("SELECT MIN(trade_date), MAX(trade_date) FROM daily_price")
         date_range = c.fetchone()
         if date_range:
-print("  日期范围: %s ~ %s" % date_range[0], date_range[1])
+            print("  日期范围: %s ~ %s" % date_range[0], date_range[1])
         
         conn.close()
         print("数据库访问正常")
     except Exception as e:
-print("  数据库访问出错: %s" % e)
+        print("  数据库访问出错: %s" % e)
     
     print("=== 清理完成 ===")
 

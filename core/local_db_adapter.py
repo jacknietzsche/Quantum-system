@@ -27,6 +27,11 @@ import pandas as pd
 
 logger = logging.getLogger('LocalDBAdapter')
 
+__all__ = [
+    "LocalDBAdapter",
+    "get_adapter",
+]
+
 # 默认数据库路径（基于 core/ 位置）
 _DEFAULT_DB_PATH = str(Path(__file__).resolve().parent.parent / "local_db" / "a_stock_quant.db")
 

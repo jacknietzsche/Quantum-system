@@ -2,17 +2,12 @@
 """
 快速初始化数据库 - 使用多进程并发下载
 """
-import sys
 import os
 import sqlite3
 import time
-import logging
 import multiprocessing as mp
 from datetime import datetime, timedelta
 from functools import partial
-
-# 添加当前目录到路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 配置
 DB_PATH = "a_stock.db"
@@ -25,15 +20,9 @@ REQUEST_DELAY = 0.02  # 请求间隔
 DATA_SOURCES = ["akshare", "baostock", "efinance"]
 
 # 日志
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 NUMERIC_COLS = ["open", "high", "low", "close", "volume", "amount", "turnover", "pct_chg"]
 
@@ -121,9 +110,9 @@ def fetch_single_stock(code, start_date, end_date):
             
             if df is not None and len(df) > 0:
                 break
-        except Exception:
-            pass
-    
+        except Exception as e:
+            logger.debug("data source fetch failed: %s", e)
+
     if df is None or len(df) == 0:
         return None
     

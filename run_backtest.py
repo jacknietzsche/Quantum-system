@@ -4,13 +4,7 @@
 run_backtest.py — 运行量化策略回测
 """
 
-import os
 import sys
-from pathlib import Path
-
-# 项目根目录
-PROJECT_ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
 from backtest.backtest_comprehensive_local import main
 

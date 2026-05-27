@@ -77,12 +77,25 @@ logs/
 *.log
 data_cache/
 market_data_cache/
+real_data_cache/
 backtest_cache/
+backup/
 *.db
 *.db-shm
 *.db-wal
 automation_history/
 *.pkl
 *.html
+output/
+
+# Root-level output files
+*.txt
+!requirements.txt
+!*.md
 performance_report*.json
-performance_test_output.txt
+duplicate_files.json
+
+# OMC / WorkBuddy
+.omc/
+.workbuddy/
+.codebuddy/

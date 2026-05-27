@@ -5,18 +5,14 @@
 """
 
 import os
-import sys
 from pathlib import Path
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
 # 测试数据库连接
 print("测试数据库连接...")
 try:
-    # 添加本地数据库路径到系统路径
-    sys.path.insert(0, os.path.join(PROJECT_ROOT, 'local_db'))
     from 笨数据库 import 笨数据库
     
     # 初始化数据库连接

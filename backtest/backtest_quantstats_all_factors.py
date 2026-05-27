@@ -17,23 +17,25 @@ warnings.filterwarnings('ignore')
 
 import os
 import sys
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
+
+from core.logging_config import setup_logging, get_logger
 
 # 修复Windows GBK编码问题
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+setup_logging()
+logger = get_logger(__name__)
 
 # 静音子模块
 for mod in ["httpx", "openai", "urllib3"]:
     logging.getLogger(mod).setLevel(logging.WARNING)
 
 ROOT = Path(__file__).resolve().parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 import pandas as pd
 import numpy as np
@@ -158,7 +160,7 @@ def all_factor_score(df):
         }
         
     except Exception as e:
-print("全因子评分失败: %s" % e)
+        print("全因子评分失败: %s" % e)
         return {'total_score': 0, 'price': 0, 'factor_detail': {}}
 
 
@@ -166,12 +168,12 @@ def run_all_factors_backtest():
     """运行全因子量化策略回测"""
     from core.local_db_adapter import LocalDBAdapter
     
-print("%s" % "=" * 70)
+    print("=" * 70)
     print("全因子量化策略回测 (QuantStats专业版)")
-print("开始时间: %s" % datetime.now()
-print(" 回测区间: %s ~ %s" % BACKTEST_START, BACKTEST_END)
-print("初始资金: ¥%s" % INITIAL_CASH:,)
-print("%s" % "=" * 70)
+    print("开始时间: %s" % datetime.now())
+    print("回测区间: %s ~ %s" % (BACKTEST_START, BACKTEST_END))
+    print("初始资金: ¥%s" % INITIAL_CASH)
+    print("=" * 70)
     
     # 1. 初始化数据库
     print("初始化本地数据库...")
@@ -188,7 +190,7 @@ print("%s" % "=" * 70)
         return None
     
     # 3. 加载回测数据
-print("加载 %s ~ %s 回测数据..." % BACKTEST_START, BACKTEST_END)
+    print("加载 %s ~ %s 回测数据..." % (BACKTEST_START, BACKTEST_END))
     
     # 获取所有交易日
     conn = db._get_conn()
@@ -232,7 +234,7 @@ print("加载 %s ~ %s 回测数据..." % BACKTEST_START, BACKTEST_END)
             
         def log(self, txt, dt=None):
             dt = dt or self.datas[0].datetime.date(0)
-print("{dt.isoformat()} %s" % txt)
+            print("%s %s" % (dt.isoformat(), txt))
         
         def notify_order(self, order):
             if order.status in [order.Completed]:
@@ -251,7 +253,7 @@ print("{dt.isoformat()} %s" % txt)
                     'value': value,
                 })
                 
-print("  %s: %s, 价格: {price:.2f}, 数量: %s, 金额: ¥{value:,.0f}" % direction, code, size)
+                print("  %s: %s, 价格: %.2f, 数量: %d, 金额: %.0f" % (direction, code, price, size, value))
         
         def next(self):
             current_date = self.datas[0].datetime.date(0)
@@ -276,9 +278,9 @@ print("  %s: %s, 价格: {price:.2f}, 数量: %s, 金额: ¥{value:,.0f}" % dire
             db = self.params.db
             end_date = current_date.strftime('%Y-%m-%d')
             
-            print(f"\n{"="*50}")
-print("[调仓] %s" % end_date)
-            print(f"{"="*50}")
+            print("\n" + "=" * 50)
+            print("[调仓] %s" % end_date)
+            print("=" * 50)
             
             all_codes = [d._name for d in self.datas]
             
@@ -320,9 +322,10 @@ print("[调仓] %s" % end_date)
                 print('没有符合条件的目标股票，跳过调仓')
                 return
             
-            print(f"目标持仓: {[s["code"] for s in target_stocks]}")
+            codes_str = ', '.join(s['code'] for s in target_stocks[:10])
+            print(f"目标持仓: [{codes_str}]...")
             for s in target_stocks[:5]:
-                print(f"  {s["code"]}: 评分={s["score"]:.4f}, 因子调整={s["adjustment_coef"]:.4f}")
+                print(f"  {s['code']}: 评分={s['score']:.4f}, 因子调整={s['adjustment_coef']:.4f}")
             
             # 当前持仓
             current_positions = set()
@@ -351,7 +354,7 @@ print("[调仓] %s" % end_date)
                             size = int(target_value / d.close[0] / 100) * 100  # 整手
                             if size > 0:
                                 self.buy(d, size=size)
-                                print("  [买入] %s: %s股, 评分={stock["score"]:.4f}", code, size)
+                                print("  [买入] %s: %d股, 评分=%.4f" % (code, size, stock['score']))
                         break
             
             print(f"[调仓完成] 持仓 {len(target_stocks)} 只股票")
@@ -386,9 +389,9 @@ print("[调仓] %s" % end_date)
             continue
         
         if data_count % 50 == 0:
-print("  已添加 %s 只股票..." % data_count)
+            print("  已添加 %s 只股票..." % data_count)
     
-print("总共添加 %s 只股票数据" % data_count)
+    print("总共添加 %s 只股票数据" % data_count)
     
     if data_count == 0:
         print("没有可用的股票数据！")
@@ -435,18 +438,18 @@ print("总共添加 %s 只股票数据" % data_count)
     annual_return = ((final_value / INITIAL_CASH) ** (365 / days) - 1) * 100
     
     # 输出摘要
-print("%s" % "\n" + "=" * 70)
+    print("%s" % "\n" + "=" * 70)
     print("全因子量化策略回测结果")
-print("%s" % "=" * 70)
-print("初始资金:       ¥%s" % INITIAL_CASH:>12,.0f)
-print("最终资产:       ¥%s" % final_value:>12,.2f)
-print("总收益率:       %s%s%" % '+'if total_return>0 else '', total_return:>11.2f)
-print("年化收益率:     %s%s%" % '+'if annual_return>0 else '', annual_return:>11.2f)
-    print("夏普比率:       %s" if sharpe_analysis.get('sharperatio') else "夏普比率:       N/A", sharpe_analysis.get('sharperatio', 0):>12.4f)
-    print("最大回撤:       %s).get('drawdown', 0):>11.2f}}%", drawdown_analysis.get('max', {)
-print("回测天数:       %s天" % days:>12)
-print("回测耗时:       %s秒" % elapsed:>11.1f)
-print("%s" % "=" * 70)
+    print("%s" % "=" * 70)
+    print("初始资金:       ¥%s" % f"{INITIAL_CASH:>12,.0f}")
+    print("最终资产:       ¥%s" % f"{final_value:>12,.2f}")
+    print("总收益率:       %s%.2f%%" % ('+' if total_return > 0 else '', total_return * 100))
+    print("年化收益率:     %s%.2f%%" % ('+' if annual_return > 0 else '', annual_return * 100))
+    print("夏普比率:       %.4f" % sharpe_analysis.get('sharperatio', 0))
+    print("最大回撤:       %.2f%%" % (drawdown_analysis.get('max', 0) * 100))
+    print("回测天数:       %s天" % f"{days:>12}")
+    print("回测耗时:       %s秒" % f"{elapsed:>11.1f}")
+    print("%s" % "=" * 70)
     
     # 交易统计
     total_trades = trades_analysis.get('total', {}).get('total', 0)
@@ -455,10 +458,10 @@ print("%s" % "=" * 70)
     win_rate = won_trades / total_trades * 100 if total_trades > 0 else 0
     
     print("\n交易统计:")
-print("  总交易次数: %s" % total_trades)
-print("  盈利交易:   %s" % won_trades)
-print("  亏损交易:   %s" % lost_trades)
-print("  胜率:       %.1f%" % win_rate)
+    print("  总交易次数: %d" % total_trades)
+    print("  盈利交易:   %d" % won_trades)
+    print("  亏损交易:   %d" % lost_trades)
+    print("  胜率:       %.1f%%" % win_rate)
     # 10. 生成QuantStats报告
     report_file = generate_quantstats_report(
         strat=strat,
@@ -512,10 +515,10 @@ def generate_quantstats_report(strat, daily_values, **kwargs):
                 benchmark_returns=None,  # 无基准对比
                 download_filename=f'all_factors_report_{report_date}',
             )
-print("[OK] QuantStats报告已保存: %s" % report_file)
+            print("[OK] QuantStats报告已保存: %s" % report_file)
             
         except Exception as e:
-print("QuantStats报告生成失败: %s" % e)
+            print("QuantStats报告生成失败: %s" % e)
             generate_fallback_report(report_file, kwargs)
     else:
         print("净值数据不足，使用备用方案生成报告")
@@ -656,12 +659,12 @@ def main():
         results = run_all_factors_backtest()
         
         if results:
-print("\n[完成] 回测结束！报告已保存至: %s" % results.get('report_file', '')
+            print("[完成] 回测结束！报告已保存至: %s" % results.get('report_file', ''))
         else:
             print("[错误] 回测失败！")
             
     except Exception as e:
-print("回测过程中出现错误: %s" % e)
+        print("回测过程中出现错误: %s" % e)
         import traceback
         traceback.print_exc()
 

@@ -22,7 +22,7 @@ factors — 因子计算引擎包
   - 返回值范围: 0-1 (归一化) 或 带方向的原始值
 """
 
-from .factor_engine_v2 import FactorEngineV2
+from core.factor_engine_v2 import FactorEngineV2
 
 __all__ = [
     "FactorEngineV2",

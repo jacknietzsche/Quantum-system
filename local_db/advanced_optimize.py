@@ -5,20 +5,13 @@
 import sqlite3
 import os
 import time
-import logging
 
 DB_PATH = "a_stock_quant.db"
 LOG_FILE = "optimize.log"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 
 def apply_pragmas():

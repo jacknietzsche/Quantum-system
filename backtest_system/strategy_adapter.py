@@ -75,11 +75,13 @@ class StrategyObserver(bt.Analyzer):
             # 获取日期
             try:
                 buy_date = bt.num2date(trade.dtopen).strftime("%Y-%m-%d")
-            except Exception:
+            except Exception as e:
+                logger.debug("buy_date conversion failed: %s", e)
                 buy_date = ""
             try:
                 sell_date = bt.num2date(trade.dtclose).strftime("%Y-%m-%d")
-            except Exception:
+            except Exception as e:
+                logger.debug("sell_date conversion failed: %s", e)
                 sell_date = ""
 
             # 计算收益率

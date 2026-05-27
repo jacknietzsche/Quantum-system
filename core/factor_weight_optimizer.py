@@ -28,6 +28,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "FactorWeightOptimizer",
+    "RiskAdjustedWeightOptimizer",
+    "FactorICStats",
+    "create_weight_optimizer",
+]
+
 
 @dataclass
 class FactorICStats:
@@ -75,7 +82,8 @@ class FactorWeightOptimizer:
         try:
             from scipy.stats import spearmanr
             ic, _ = spearmanr(signals, returns)
-        except Exception:
+        except Exception as e:
+            logger.debug("spearmanr failed, falling back to corrcoef: %s", e)
             ic = np.corrcoef(signals, returns)[0, 1]
         
         if np.isnan(ic):

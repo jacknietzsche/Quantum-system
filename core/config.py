@@ -18,11 +18,29 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from pathlib import Path
 
+__all__ = [
+    "QuantConfig",
+    "DataSourceConfig",
+    "TradeConfig",
+    "PortfolioConfig",
+    "RiskConfig",
+    "SelectionConfig",
+    "FactorConfig",
+    "BacktestEngineConfig",
+    "ReportConfig",
+    "PROJECT_ROOT",
+    "COLORS",
+    "A_SHARE_LOT_SIZE",
+]
+
 # ============================================================
 # 项目路径
 # ============================================================
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_CACHE_DIR = PROJECT_ROOT / "real_data_cache"
+
+# A股交易常量
+A_SHARE_LOT_SIZE = 100  # A股最小交易单位：100股/手
 BACKTEST_CACHE_DIR = PROJECT_ROOT / "backtest_system" / "cache" / "market_data"
 REPORT_DIR = PROJECT_ROOT / "daily_reports_v14"
 PORTFOLIO_REPORT_DIR = PROJECT_ROOT / "portfolio_reports"

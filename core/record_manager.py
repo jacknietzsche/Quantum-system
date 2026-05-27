@@ -22,6 +22,15 @@ import pandas as pd
 
 logger = __import__('logging').getLogger(__name__)
 
+__all__ = [
+    "RecordManager",
+    "get_record_manager",
+    "record_error",
+    "record_result",
+    "get_errors",
+    "get_results",
+]
+
 
 class RecordManager:
     """
@@ -32,8 +41,9 @@ class RecordManager:
     
     def __init__(self):
         # 确保文件夹存在
-        self.learnings_dir = Path(r"c:\Users\21471\WorkBuddy\quant system\.learnings")
-        self.workbuddy_dir = Path(r"c:\Users\21471\WorkBuddy\quant system\.workbuddy")
+        from core.config import PROJECT_ROOT
+        self.learnings_dir = PROJECT_ROOT / ".learnings"
+        self.workbuddy_dir = PROJECT_ROOT / ".workbuddy"
         
         self.learnings_dir.mkdir(parents=True, exist_ok=True)
         self.workbuddy_dir.mkdir(parents=True, exist_ok=True)

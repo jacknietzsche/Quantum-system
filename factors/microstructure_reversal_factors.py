@@ -71,7 +71,8 @@ def _safe_div(a, b, fill=0.0):
             return float(a) / b if abs(b) > 1e-9 else fill
         result = pd.Series(np.where(np.abs(b) > 1e-9, a / b, fill), index=a.index)
         return result
-    except Exception:
+    except Exception as e:
+        logger.debug("safe division failed: %s", e)
         return fill
 
 

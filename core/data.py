@@ -48,6 +48,14 @@ from core.record_manager import record_error, record_result
 warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "UnifiedDataFetcher",
+    "RealDataFetcher",
+    "normalize_code",
+    "code_to_baostock",
+    "code_to_market",
+]
+
 
 # ============================================================
 # 代码格式转换工具
@@ -190,7 +198,8 @@ class UnifiedDataFetcher:
                 import baostock as bs
                 if self._bs_session is not None:
                     try: self._bs_session.logout()
-                    except Exception: pass  # baostock会话关闭失败可忽略
+                    except Exception as e:
+                        logger.debug("session logout ignored: %s", e)
                 lg = bs.login()
                 if lg.error_code != '0':
                     raise RuntimeError(f"baostock 登录失败: {lg.error_msg}")
@@ -204,7 +213,8 @@ class UnifiedDataFetcher:
             try:
                 if self._bs_session is not None:
                     self._bs_session.logout()
-            except Exception: pass  # baostock会话关闭失败可忽略
+            except Exception as e:
+                logger.debug("session rebuild logout ignored: %s", e)
             self._bs_session = None
             self._session_created_at = 0
             time.sleep(0.5)
@@ -220,14 +230,15 @@ class UnifiedDataFetcher:
         bs = getattr(self, '_bs_session', None)
         if bs is not None:
             try: bs.logout()
-            except Exception: pass  # baostock会话关闭失败可忽略
+            except Exception as e:
+                logger.debug("session close ignored: %s", e)
         self._bs_session = None
 
     def __del__(self):
         try:
             self._close_session()
-        except Exception:
-            pass  # 防止析构时属性不存在报错
+        except Exception as e:
+            logger.debug("destructor session close ignored: %s", e)
 
     # ── 自适应降速 ──────────────────────────────────────────
     def _record_success(self):
@@ -404,7 +415,8 @@ class UnifiedDataFetcher:
                     self._trade_date_cache_time = now
                     return d
             raise RuntimeError("最近10天无交易数据")
-        except Exception:
+        except Exception as e:
+            logger.warning("recent trade date lookup failed: %s", e)
             self._close_session()
             raise
 
@@ -668,7 +680,8 @@ class UnifiedDataFetcher:
                 if retry < 1:
                     time.sleep(3.0)
                     continue
-            except Exception:
+            except Exception as e:
+                logger.debug("baostock daily fetch failed: %s", e)
                 if retry < 1:
                     time.sleep(1.5)
                     continue
@@ -709,7 +722,8 @@ class UnifiedDataFetcher:
                 df['market_cap'] = df['close'] * df['volume'] * 100
                 df = df.set_index('date')
                 return df
-            except Exception:
+            except Exception as e:
+                logger.debug("efinance fetch failed: %s", e)
                 if retry < 1:
                     time.sleep(1.0)
                     continue

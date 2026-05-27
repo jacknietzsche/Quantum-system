@@ -264,7 +264,8 @@ class OptimizedBacktestEngine:
             s = run[0]
             try:
                 sharpe = s.analyzers.sharpe.get_analysis().get("sharperatio", 0) or 0
-            except Exception:
+            except Exception as e:
+                logger.debug("sharpe extraction in param search failed: %s", e)
                 sharpe = 0
             rows.append({
                 "sharpe": sharpe,
@@ -293,7 +294,8 @@ class OptimizedBacktestEngine:
         try:
             sharpe_analysis = strategy.analyzers.sharpe.get_analysis()
             sharpe = sharpe_analysis.get("sharperatio", 0) or 0
-        except Exception:
+        except Exception as e:
+            logger.debug("sharpe extraction failed: %s", e)
             sharpe = 0
 
         # 最大回撤
@@ -301,7 +303,8 @@ class OptimizedBacktestEngine:
             dd_analysis = strategy.analyzers.drawdown.get_analysis()
             max_dd = dd_analysis.get("max", {}).get("drawdown", 0) or 0
             max_dd_period = dd_analysis.get("max", {}).get("len", 0) or 0
-        except Exception:
+        except Exception as e:
+            logger.debug("drawdown extraction failed: %s", e)
             max_dd = 0
             max_dd_period = 0
 
@@ -318,19 +321,22 @@ class OptimizedBacktestEngine:
         try:
             annual = strategy.analyzers.annual_return.get_analysis()
             annual_returns = {str(k): round(v * 100, 2) for k, v in annual.items()}
-        except Exception:
+        except Exception as e:
+            logger.debug("annual return extraction failed: %s", e)
             annual_returns = {}
 
         # Calmar
         try:
             calmar = strategy.analyzers.calmar.get_analysis().get("calmar", 0) or 0
-        except Exception:
+        except Exception as e:
+            logger.debug("calmar extraction failed: %s", e)
             calmar = 0
 
         # SQN
         try:
             sqn = strategy.analyzers.sqn.get_analysis().get("sqn", 0) or 0
-        except Exception:
+        except Exception as e:
+            logger.debug("sqn extraction failed: %s", e)
             sqn = 0
 
         # 构造每日净值曲线

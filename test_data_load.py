@@ -4,14 +4,6 @@
 测试数据加载功能
 """
 
-import sys
-import os
-from datetime import datetime
-
-# 添加项目根目录到系统路径
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, PROJECT_ROOT)
-
 from backtest.backtest_comprehensive_local import load_local_data
 
 if __name__ == '__main__':

@@ -13,18 +13,19 @@ v15 大市值股票量化回测 - QuantStats专业版
 - 初始资金: 100 万
 """
 
-import sys
+import logging
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+from core.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 
 # 静音子模块
 for mod in ["httpx", "openai", "urllib3", "matplotlib", "seaborn"]:
     logging.getLogger(mod).setLevel(logging.WARNING)
 
 ROOT = Path(__file__).resolve().parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 # 回测参数
 BACKTEST_START = "2021-03-24"
@@ -180,7 +181,8 @@ def run_backtest():
                             'score': result['total_score'],
                             'price': result.get('price', 0),
                         })
-                except Exception:
+                except Exception as e:
+                    logger.debug("scoring failed for %s: %s", code, e)
                     continue
 
             stock_scores.sort(key=lambda x: x['score'], reverse=True)
@@ -229,7 +231,8 @@ def run_backtest():
             data = bt.feeds.PandasData(dataname=df)
             cerebro.adddata(data, name=code)
             success_count += 1
-        except Exception:
+        except Exception as e:
+            logger.debug("data add failed for %s: %s", code, e)
             continue
 
     print("添加 %s 只股票数据" % success_count)
@@ -297,7 +300,7 @@ def main():
 
     report_file = output_path / "quantstats_report_large_cap_20260407.html"
 
-print("生成QuantStats报告: %s" % report_file)
+    print("生成QuantStats报告: %s" % report_file)
 
     # 生成完整HTML报告
     qs.reports.html(
@@ -308,44 +311,44 @@ print("生成QuantStats报告: %s" % report_file)
         periods_per_year=252,
         initial_cash=INITIAL_CASH,
     )
-
-print("报告已生成: %s" % report_file)
+    print("报告已生成: %s" % report_file)
 
     # 同时打印关键指标到控制台
-print("%s" % "\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("QuantStats 关键指标摘要")
-print("%s" % "=" * 60)
+    print("=" * 60)
 
     print("\n策略收益率:")
-print("  总收益率: %s%" % qs.stats.comp(returns)
-print("  年化收益率: %s%" % qs.stats.cagr(returns)
+    print("  总收益率: %.2f%%" % (qs.stats.comp(returns) * 100))
+    print("  年化收益率: %.2f%%" % (qs.stats.cagr(returns) * 100))
 
     print("\n风险指标:")
-print("  夏普比率: %s" % qs.stats.sharpe(returns)
-print("  最大回撤: %s%" % qs.stats.max_drawdown(returns)
-print("  波动率: %s%" % qs.stats.volatility(returns)
-print("  VaR(95%): %s%" % qs.stats.var(returns)
-print("  CVaR(95%): %s%" % qs.stats.cvar(returns)
+    print("  夏普比率: %.2f" % qs.stats.sharpe(returns))
+    print("  最大回撤: %.2f%%" % (qs.stats.max_drawdown(returns) * 100))
+    print("  波动率: %.2f%%" % (qs.stats.volatility(returns) * 100))
+    print("  VaR(95%): %.2f%%" % (qs.stats.var(returns) * 100))
+    print("  CVaR(95%): %.2f%%" % (qs.stats.cvar(returns) * 100))
 
     print("\n风险调整收益:")
-print("  卡尔玛比率: %s" % qs.stats.calmar(returns)
-print("  索提诺比率: %s" % qs.stats.sortino(returns)
+    print("  卡尔玛比率: %.2f" % qs.stats.calmar(returns))
+    print("  索提诺比率: %.2f" % qs.stats.sortino(returns))
 
     print("\n盈利统计:")
-print("  胜率: %s%" % qs.stats.win_rate(returns)
-print("  平均盈利: %s%" % qs.stats.avg_win(returns)
-print("  平均亏损: %s%" % qs.stats.avg_loss(returns)
-print("  盈亏比: %s" % qs.stats.win_loss_ratio(returns)
+    print("\n盈利统计:")
+    print("  胜率: %.2f%%" % (qs.stats.win_rate(returns) * 100))
+    print("  平均盈利: %.2f" % qs.stats.avg_win(returns))
+    print("  平均亏损: %.2f" % qs.stats.avg_loss(returns))
+    print("  盈亏比: %.2f" % qs.stats.win_loss_ratio(returns))
 
     print("\n其他指标:")
-print("  收益波动率: %s%" % qs.stats.volatility(returns)
-print("  下行波动率: %s%" % qs.stats.downsidevol(returns)
-print("  最长亏损期: %s 天" % qs.stats.longest_win_streak(returns)
-print("  最长盈利期: %s 天" % qs.stats.longest_loss_streak(returns)
+    print("  收益波动率: %.2f%%" % (qs.stats.volatility(returns) * 100))
+    print("  下行波动率: %.2f%%" % (qs.stats.downsidevol(returns) * 100))
+    print("  最长亏损期: %d 天" % qs.stats.longest_win_streak(returns))
+    print("  最长盈利期: %d 天" % qs.stats.longest_loss_streak(returns))
 
-print("%s" % "\n" + "=" * 60)
-print("完整报告: %s" % report_file)
-print("%s" % "=" * 60)
+    print("\n" + "=" * 60)
+    print("完整报告: %s" % report_file)
+    print("=" * 60)
 
     return str(report_file)
 

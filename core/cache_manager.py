@@ -25,6 +25,13 @@ from core.config import DataSourceConfig
 
 logger = __import__('logging').getLogger(__name__)
 
+__all__ = [
+    "CacheManager",
+    "get_cache_manager",
+    "clear_cache",
+    "get_cache_stats",
+]
+
 
 class CacheManager:
     """
@@ -137,8 +144,8 @@ class CacheManager:
             if data_size > 10 * 1024 * 1024:  # 10MB
                 logger.warning(f"缓存数据过大: {data_size / 1024 / 1024:.2f}MB")
                 return False
-        except Exception:
-            logger.warning("无法计算数据大小")
+        except Exception as e:
+            logger.warning("无法计算数据大小: %s", e)
             return False
         
         # 存储到内存缓存
@@ -253,9 +260,9 @@ class CacheManager:
                 if file.endswith('.pkl'):
                     file_path = os.path.join(self.cfg.cache_dir, file)
                     disk_size += os.path.getsize(file_path)
-        except Exception:
-            pass
-        
+        except Exception as e:
+            logger.debug("disk cache size calculation failed: %s", e)
+
         return {
             'hits': self._hits,
             'misses': self._misses,

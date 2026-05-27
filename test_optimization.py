@@ -6,7 +6,6 @@
 
 import os
 import time
-import logging
 from datetime import datetime
 
 import pandas as pd
@@ -17,12 +16,9 @@ from core.data_scheduler import get_data_scheduler, force_update
 from core.cache_manager import get_cache_stats
 from core.record_manager import get_errors, get_results
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 
 def test_data_update():

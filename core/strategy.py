@@ -17,7 +17,6 @@ core.strategy — 策略与因子层
 """
 
 import os
-import sys
 import logging
 import warnings as warnings_builtin
 from datetime import datetime
@@ -32,6 +31,14 @@ from core.config import QuantConfig, SelectionConfig
 
 warnings_builtin.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "V15Scorer",
+    "V16Scorer",
+    "StockFilter",
+    "MarketAnalyzer",
+    "LLMBroker",
+]
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -90,9 +97,6 @@ class LazyComponentLoader:
 
     def __init__(self):
         self._cache: Dict[str, Any] = {}
-        self._root = str(_PROJECT_ROOT)
-        if self._root not in sys.path:
-            sys.path.insert(0, self._root)
 
     def get(self, component_name: str) -> Any:
         """获取组件（延迟加载）"""
@@ -429,10 +433,6 @@ class V15Scorer:
             }
         else:
             # 兼容旧代码：直接导入
-            root_str = str(_PROJECT_ROOT)
-            if root_str not in sys.path:
-                sys.path.insert(0, root_str)
-
             try:
                 from a_stock_selector_v12_optimized import HuanfangStockSelectorV12
                 from enhanced_factor_calculator import EnhancedFactorCalculator
@@ -758,7 +758,8 @@ class V15Scorer:
                 result = self.score(sym, sdf, market_state, stock_fund_data, market_factors)
                 if result:
                     results.append(result)
-            except Exception:
+            except Exception as e:
+                logger.debug("scoring failed for %s: %s", sym, e)
                 errors += 1
 
             if (i + 1) % batch_print == 0:
@@ -795,7 +796,8 @@ class V15Scorer:
                     with lock:
                         results.append(result)
                 return True
-            except Exception:
+            except Exception as e:
+                logger.debug("parallel scoring failed for %s: %s", sym, e)
                 with lock:
                     errors[0] += 1
                 return False

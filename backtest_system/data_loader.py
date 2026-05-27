@@ -441,7 +441,8 @@ class DataLoader:
             with open(path, "rb") as f:
                 df = pickle.load(f)
             return df
-        except Exception:
+        except Exception as e:
+            logger.debug("cache load failed: %s", e)
             return None
 
     def _save_cache(self, code: str, start: str, end: str, df: pd.DataFrame):

@@ -14,26 +14,18 @@ import os as _boot_os
 _boot_os.environ['DISABLE_TQDM'] = 'true'
 del _boot_os
 
-import sys
 import argparse
 import logging
 from datetime import datetime
-from pathlib import Path
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-logger = logging.getLogger('portfolio_v2')
+from core.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 
 # 静音子模块（防止 openai/httpx 日志格式冲突）
 for mod in ["httpx", "openai", "urllib3"]:
     logging.getLogger(mod).setLevel(logging.WARNING)
-
-ROOT = Path(__file__).resolve().parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 
 def main():

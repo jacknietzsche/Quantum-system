@@ -20,18 +20,19 @@ v15 全量因子策略量化回测 - QuantStats专业版
 使用全量数据库进行回测，生成QuantStats专业报告
 """
 
-import sys
+import logging
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+from core.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 
 # 静音子模块
 for mod in ["httpx", "openai", "urllib3", "matplotlib", "seaborn"]:
     logging.getLogger(mod).setLevel(logging.WARNING)
 
 ROOT = Path(__file__).resolve().parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 # 回测参数
 BACKTEST_START = "2021-03-24"  # 数据库最早日期
@@ -304,7 +305,8 @@ def run_backtest():
                             'price': result.get('price', 0),
                             'factors': result.get('factors', {}),
                         })
-                except Exception:
+                except Exception as e:
+                    logger.debug("scoring failed for %s: %s", code, e)
                     continue
 
             # 排序选股
@@ -353,7 +355,8 @@ def run_backtest():
             data = bt.feeds.PandasData(dataname=df)
             cerebro.adddata(data, name=code)
             success_count += 1
-        except Exception:
+        except Exception as e:
+            logger.debug("data add failed for %s: %s", code, e)
             continue
 
     print("添加 %s 只股票数据" % success_count)
@@ -420,7 +423,7 @@ def main():
 
     report_file = output_path / "quantstats_full_factor_20260407.html"
 
-print("生成QuantStats报告: %s" % report_file)
+    print("生成QuantStats报告: %s" % report_file)
 
     qs.reports.html(
         returns=returns,
@@ -430,41 +433,40 @@ print("生成QuantStats报告: %s" % report_file)
         periods_per_year=252,
         initial_cash=INITIAL_CASH,
     )
-
-print("报告已生成: %s" % report_file)
+    print("报告已生成: %s" % report_file)
 
     # 打印关键指标
-print("%s" % "\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("v15 全量因子策略 - QuantStats 关键指标")
-print("%s" % "=" * 60)
+    print("=" * 60)
 
     print("\n【收益指标】")
-print("  总收益率:    %s%" % qs.stats.comp(returns)
-print("  年化收益率:  %s%" % qs.stats.cagr(returns)
+    print("  总收益率:    %.2f%%" % (qs.stats.comp(returns) * 100))
+    print("  年化收益率:  %.2f%%" % (qs.stats.cagr(returns) * 100))
 
     print("\n【风险指标】")
-print("  夏普比率:    %s" % qs.stats.sharpe(returns)
-print("  最大回撤:    %s%" % qs.stats.max_drawdown(returns)
-print("  波动率:      %s%" % qs.stats.volatility(returns)
-print("  VaR(95%):   %s%" % qs.stats.var(returns)
+    print("  夏普比率:    %.2f" % qs.stats.sharpe(returns))
+    print("  最大回撤:    %.2f%%" % (qs.stats.max_drawdown(returns) * 100))
+    print("  波动率:      %.2f%%" % (qs.stats.volatility(returns) * 100))
+    print("  VaR(95%):   %.2f%%" % (qs.stats.var(returns) * 100))
 
     print("\n【风险调整收益】")
-print("  卡尔玛比率:  %s" % qs.stats.calmar(returns)
-print("  索提诺比率:  %s" % qs.stats.sortino(returns)
+    print("  卡尔玛比率:  %.2f" % qs.stats.calmar(returns))
+    print("  索提诺比率:  %.2f" % qs.stats.sortino(returns))
 
     print("\n【盈利统计】")
-print("  胜率:        %s%" % qs.stats.win_rate(returns)
-print("  平均盈利:    %s%" % qs.stats.avg_win(returns)
-print("  平均亏损:    %s%" % qs.stats.avg_loss(returns)
+    print("  胜率:        %.2f%%" % (qs.stats.win_rate(returns) * 100))
+    print("  平均盈利:    %.2f" % qs.stats.avg_win(returns))
+    print("  平均亏损:    %.2f" % qs.stats.avg_loss(returns))
 
     print("\n【其他】")
-print("  下行波动率:  %s%" % qs.stats.downsidevol(returns)
-print("  偏度:        %s" % qs.stats.skew(returns)
-print("  峰度:        %s" % qs.stats.kurtosis(returns)
+    print("  下行波动率:  %.2f%%" % (qs.stats.downsidevol(returns) * 100))
+    print("  偏度:        %.2f" % qs.stats.skew(returns))
+    print("  峰度:        %.2f" % qs.stats.kurtosis(returns))
 
-print("%s" % "\n" + "=" * 60)
-print("完整报告: %s" % report_file)
-print("%s" % "=" * 60)
+    print("\n" + "=" * 60)
+    print("完整报告: %s" % report_file)
+    print("=" * 60)
 
     return str(report_file)
 

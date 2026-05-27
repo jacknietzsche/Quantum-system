@@ -25,6 +25,12 @@ from core.cache_manager import get_cache_manager
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DBManager",
+    "get_db_manager",
+    "close_db_manager",
+]
+
 
 class DBManager:
     """

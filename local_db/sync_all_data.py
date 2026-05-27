@@ -3,20 +3,11 @@
 后台运行：补充缺失股票数据 + 增量更新
 使用笨数据库的断点续传功能，跳过已有数据的股票
 """
-import sys
-import os
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.FileHandler("sync_data.log", encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 from 笨数据库 import 笨数据库
 

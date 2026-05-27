@@ -23,6 +23,11 @@ from core.db_manager import get_db_manager
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DataShardingManager",
+    "get_data_sharding_manager",
+]
+
 
 class DataShardingManager:
     """

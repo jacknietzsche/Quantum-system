@@ -34,10 +34,9 @@ def add_indexes():
             start = time.time()
             c.execute(sql)
             elapsed = time.time() - start
-print("  [OK] %.1f (%sms)" % name, elapsed*1000)
-print("  [FAIL] %s: %s" % name, e)
-    
-    conn.commit()
+            print("  [OK] %.1f (%sms)" % (name, elapsed*1000))
+        except Exception as e:
+            print("  [FAIL] %s: %s" % (name, e))
     conn.close()
     print("索引创建完成!")
 
@@ -46,16 +45,16 @@ def verify_indexes():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-print("%s" % "\n" + "=" * 50)
+    print("%s" % "\n" + "=" * 50)
     print("索引验证")
-print("%s" % "=" * 50)
+    print("%s" % "=" * 50)
     
     c.execute("SELECT name, sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL")
     indexes = c.fetchall()
     
-print("索引总数: %s" % len(indexes)
+    print("索引总数: %s" % len(indexes))
     for name, sql in indexes:
-print("  - %s" % name)
+        print("  - %s" % name)
     
     conn.close()
 
@@ -64,9 +63,9 @@ def test_performance():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-print("%s" % "\n" + "=" * 50)
+    print("\n" + "=" * 50)
     print("优化后性能测试")
-print("%s" % "=" * 50)
+    print("=" * 50)
     
     # 测试1: 单只股票查询
     start = time.time()
@@ -77,7 +76,7 @@ print("%s" % "=" * 50)
     """)
     rows = c.fetchall()
     elapsed = time.time() - start
-print("查询600519 2026年数据 (%s条): %sms" % len(rows)
+    print("查询600519 2026年数据 (%d条): %.1fms" % (len(rows), elapsed * 1000))
     
     # 测试2: 多只股票批量查询
     # 安全：使用参数化查询，codes 是硬编码列表，无注入风险
@@ -94,7 +93,7 @@ print("查询600519 2026年数据 (%s条): %sms" % len(rows)
     c.execute(query, codes)
     results = c.fetchall()
     elapsed = time.time() - start
-print("批量查询5只股票: %.1fms" % elapsed*1000)
+    print("批量查询5只股票: %.1fms" % (elapsed * 1000))
     # 测试3: 全量统计 (之前67秒)
     start = time.time()
     c.execute("""
@@ -103,7 +102,7 @@ print("批量查询5只股票: %.1fms" % elapsed*1000)
     """)
     result = c.fetchone()
     elapsed = time.time() - start
-print("统计3月有交易的股票数: %.1fms" % elapsed*1000)
+    print("统计3月有交易的股票数: %.1fms" % (elapsed * 1000))
     # 测试4: 按日期范围查询
     start = time.time()
     c.execute("""
@@ -114,7 +113,7 @@ print("统计3月有交易的股票数: %.1fms" % elapsed*1000)
     """)
     rows = c.fetchall()
     elapsed = time.time() - start
-print("查询3月数据(前100条): %.1fms" % elapsed*1000)
+    print("查询3月数据(前100条): %.1fms" % (elapsed * 1000))
     conn.close()
 
 if __name__ == "__main__":

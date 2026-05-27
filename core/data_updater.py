@@ -30,6 +30,11 @@ from core.data_validator import validate_stock_data
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DataUpdater",
+    "get_data_updater",
+]
+
 
 class DataUpdater:
     """
@@ -323,9 +328,10 @@ class DataUpdater:
             df = df.dropna(subset=['close']).sort_values('date')
             df = df.set_index('date')
             return df
-        except Exception:
+        except Exception as e:
+            logger.debug("baostock fetch failed for %s: %s", symbol, e)
             return pd.DataFrame()
-    
+
     def _fetch_efinance(self, symbol: str, days: int) -> pd.DataFrame:
         """从 efinance 获取数据"""
         if not self._efinance_ok:
@@ -362,9 +368,10 @@ class DataUpdater:
             df = df.dropna(subset=['close']).sort_values('date').tail(days)
             df = df.set_index('date')
             return df
-        except Exception:
+        except Exception as e:
+            logger.debug("efinance fetch failed for %s: %s", symbol, e)
             return pd.DataFrame()
-    
+
     def _fetch_sina(self, symbol: str, days: int) -> pd.DataFrame:
         """从新浪HTTP获取数据"""
         import json
@@ -422,9 +429,10 @@ class DataUpdater:
             df['amount'] = df['close'] * df['volume'] * 10
             df = df.tail(days).set_index('date')
             return df
-        except Exception:
+        except Exception as e:
+            logger.debug("sina fetch failed for %s: %s", symbol, e)
             return pd.DataFrame()
-    
+
     def _fetch_tencent(self, symbol: str, days: int) -> pd.DataFrame:
         """从腾讯HTTP获取数据"""
         import json
@@ -498,9 +506,10 @@ class DataUpdater:
                 df['pct_change'] = df['pct_change'].fillna(0)
             df = df.tail(days).set_index('date')
             return df
-        except Exception:
+        except Exception as e:
+            logger.debug("tencent fetch failed for %s: %s", symbol, e)
             return pd.DataFrame()
-    
+
     def _validate_data(self, df: pd.DataFrame) -> bool:
         """数据完整性校验"""
         if df.empty:

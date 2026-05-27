@@ -1,10 +1,7 @@
 import os
-import sys
 import pandas as pd
 from datetime import datetime
 
-# 添加本地数据库路径到系统路径
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'local_db'))
 from 笨数据库 import 笨数据库
 
 import logging

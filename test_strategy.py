@@ -4,13 +4,6 @@
 测试策略适配器的get_sell_signals方法
 """
 
-import sys
-from pathlib import Path
-
-# 项目根目录
-PROJECT_ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
 from backtest.backtest_comprehensive_local import V16StrategyAdapter
 
 # 创建策略实例

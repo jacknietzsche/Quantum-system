@@ -78,7 +78,8 @@ class VolatilitySentimentFactorCalculator:
             if hasattr(a, 'index'):
                 return pd.Series(result, index=a.index, dtype=float)
             return result
-        except Exception:
+        except Exception as e:
+            logger.debug("safe division failed: %s", e)
             return fill
 
     @staticmethod

@@ -16,6 +16,11 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "LocalDBFetcher",
+    "get_local_fetcher",
+]
+
 
 class LocalDBFetcher:
     """

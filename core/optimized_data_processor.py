@@ -22,6 +22,11 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "OptimizedDataProcessor",
+    "get_optimized_data_processor",
+]
+
 
 class OptimizedDataProcessor:
     """

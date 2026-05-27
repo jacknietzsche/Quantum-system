@@ -30,6 +30,13 @@ from core.config import QuantConfig, ReportConfig, COLORS
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "SelectionReportGenerator",
+    "PortfolioReportGenerator",
+    "BacktestReportGenerator",
+    "SimulationReportGenerator",
+]
+
 
 # ================================================================
 # SelectionReportGenerator — 每日选股报告

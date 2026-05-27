@@ -24,6 +24,12 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "PerformanceAnalyzer",
+    "get_performance_analyzer",
+    "analyze_performance",
+]
+
 
 class PerformanceAnalyzer:
     """

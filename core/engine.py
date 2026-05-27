@@ -18,7 +18,6 @@ core.engine — 统一 Backtrader 回测引擎层
   - 策略只需实现 get_buy_signals/get_sell_signals 即可对接
 """
 
-import sys
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
@@ -34,6 +33,16 @@ from core.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "BacktestEngine",
+    "StrategyObserver",
+    "ChinaStockCommission",
+    "OrderManager",
+    "BacktraderStrategyAdapter",
+    "EqualWeightStrategy",
+    "V14StrategyAdapter",
+]
 
 # 项目根目录（v14 模块所在位置）
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -106,20 +115,29 @@ class StrategyObserver(bt.Analyzer):
             size = 0
             price = 0.0
             try: pnl = float(trade.pnl)
-            except Exception: pass
+            except Exception as e:
+                logger.debug("trade.pnl conversion failed: %s", e)
             try: pnlcomm = float(trade.pnlcomm)
-            except Exception: pass
+            except Exception as e:
+                logger.debug("trade.pnlcomm conversion failed: %s", e)
             try: commission = float(trade.commission)
-            except Exception: pass
+            except Exception as e:
+                logger.debug("trade.commission conversion failed: %s", e)
             try: size = int(trade.size)
-            except Exception: pass
+            except Exception as e:
+                logger.debug("trade.size conversion failed: %s", e)
             try: price = float(trade.price)
-            except Exception: pass
+            except Exception as e:
+                logger.debug("trade.price conversion failed: %s", e)
 
             try: buy_date = bt.num2date(trade.dtopen).strftime("%Y-%m-%d")
-            except Exception: buy_date = ""
+            except Exception as e:
+                logger.debug("buy_date conversion failed: %s", e)
+                buy_date = ""
             try: sell_date = bt.num2date(trade.dtclose).strftime("%Y-%m-%d")
-            except Exception: sell_date = ""
+            except Exception as e:
+                logger.debug("sell_date conversion failed: %s", e)
+                sell_date = ""
 
             cost_basis = abs(price * size) if price > 0 and size != 0 else 1.0
             pnl_pct = (pnlcomm / cost_basis * 100) if cost_basis > 0 else 0.0
@@ -186,7 +204,8 @@ class OrderManager(bt.Analyzer):
             exec_price = order.created.price
         if exec_price == 0:
             try: exec_price = order.data.close[0]
-            except Exception: pass
+            except Exception as e:
+                logger.debug("order.data.close fallback failed: %s", e)
 
         self.orders_log.append({
             "date": date_str,
@@ -505,10 +524,6 @@ class V14StrategyAdapter:
         self._json_snapshot = None
         self._initialized = False
 
-        root_str = str(_PROJECT_ROOT)
-        if root_str not in sys.path:
-            sys.path.insert(0, root_str)
-
     @classmethod
     def from_json_report(cls, json_path: str, **kwargs):
         """从已有的 v14 JSON 报告创建适配器（快照模式）"""
@@ -568,7 +583,8 @@ class V14StrategyAdapter:
                     max_change = max(max_change, change)
 
             return max_change >= self.rebalance_threshold
-        except Exception:
+        except Exception as e:
+            logger.debug("rebalance check failed: %s", e)
             return False
 
     def get_sell_signals(self, date: str, data: dict, current_portfolio: dict) -> List[str]:
@@ -661,8 +677,8 @@ class V14StrategyAdapter:
                 df = self.data_fetcher.get_daily(code, days=self.request_days)
                 if df is not None and len(df) >= 60:
                     v14_data[code] = df
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("v14 data fetch failed for %s: %s", code, e)
         return v14_data if v14_data else None
 
     def _run_v14_scoring(self, v14_data):
@@ -703,8 +719,8 @@ class V14StrategyAdapter:
                     "factor_v2_coef": factor_v2_result["adjustment_coef"],
                     "anti_top_penalty": penalty,
                 })
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("v14 scoring failed for %s: %s", sym, e)
         return results
 
 
@@ -848,13 +864,16 @@ class BacktestEngine:
 
         try:
             sharpe = strategy.analyzers.sharpe.get_analysis().get("sharperatio", 0) or 0
-        except Exception: sharpe = 0
+        except Exception as e:
+            logger.debug("sharpe extraction failed: %s", e)
+            sharpe = 0
 
         try:
             dd = strategy.analyzers.drawdown.get_analysis()
             max_dd = dd.get("max", {}).get("drawdown", 0) or 0
             max_dd_period = dd.get("max", {}).get("len", 0) or 0
-        except Exception:
+        except Exception as e:
+            logger.debug("drawdown extraction failed: %s", e)
             max_dd = max_dd_period = 0
 
         n_trades = len(observer.trades)
@@ -868,13 +887,19 @@ class BacktestEngine:
         try:
             annual = strategy.analyzers.annual_return.get_analysis()
             annual_returns = {str(k): round(v * 100, 2) for k, v in annual.items()}
-        except Exception: annual_returns = {}
+        except Exception as e:
+            logger.debug("annual return extraction failed: %s", e)
+            annual_returns = {}
 
         try: calmar = strategy.analyzers.calmar.get_analysis().get("calmar", 0) or 0
-        except Exception: calmar = 0
+        except Exception as e:
+            logger.debug("calmar extraction failed: %s", e)
+            calmar = 0
 
         try: sqn = strategy.analyzers.sqn.get_analysis().get("sqn", 0) or 0
-        except Exception: sqn = 0
+        except Exception as e:
+            logger.debug("sqn extraction failed: %s", e)
+            sqn = 0
 
         daily_values = observer.daily_values
         n_values = len(daily_values)
@@ -943,7 +968,8 @@ class BacktestEngine:
             try:
                 for i in range(min(n_values, len(data))):
                     dates.append(data.datetime.date(i))
-            except Exception: pass
+            except Exception as e:
+                logger.debug("date inference failed: %s", e)
 
             if len(dates) >= n_values:
                 return pd.DatetimeIndex(dates)

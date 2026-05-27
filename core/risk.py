@@ -20,6 +20,12 @@ from core.data import UnifiedDataFetcher
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "RiskChecker",
+    "StopLossManager",
+    "PositionManager",
+]
+
 
 class RiskChecker:
     """风控检查器 — 停牌/涨跌停/异常波动/仓位集中度"""
@@ -227,7 +233,9 @@ class PositionManager:
         try:
             with pd.HDFStore(self._h5, 'r') as s:
                 return s[key] if key in s else pd.DataFrame()
-        except Exception: return pd.DataFrame()
+        except Exception as e:
+            logger.debug("HDF5 read failed: %s", e)
+            return pd.DataFrame()
 
     def _write(self, key: str, df: pd.DataFrame) -> None:
         try:
@@ -313,4 +321,6 @@ class PositionManager:
             df = self.fetcher.get_daily(code, days=5)
             if df.empty: return 0.0
             return float(df['open'].iloc[-1])
-        except Exception: return 0.0
+        except Exception as e:
+            logger.debug("open price fetch failed: %s", e)
+            return 0.0

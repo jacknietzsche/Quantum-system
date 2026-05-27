@@ -1,13 +1,14 @@
 import sys
 import os
-import logging
-
-# 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # 添加项目根目录到路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from core.logging_config import setup_logging, get_logger
+
+# 配置日志
+setup_logging()
+logger = get_logger(__name__)
 
 from backtest_system.backtest_engine import BacktestEngine
 from backtest_system.data_loader import DataLoader

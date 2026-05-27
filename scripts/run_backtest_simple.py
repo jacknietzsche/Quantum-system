@@ -15,10 +15,12 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+from core.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 
 ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT))
 
 
 def main():
@@ -32,8 +34,8 @@ def main():
     # 1. 初始化数据库
     db = LocalDBAdapter()
     stats = db.get_stats()
-print("数据库: %s只股票" % stats['stock_count'])
-print("数据范围: %s ~ %s" % stats['date_min'], stats['date_max'])
+    print("数据库: %s只股票" % stats['stock_count'])
+    print("数据范围: %s ~ %s" % (stats['date_min'], stats['date_max']))
     
     # 2. 获取大市值股票池
     conn = db._get_conn()
@@ -64,8 +66,8 @@ print("数据范围: %s ~ %s" % stats['date_min'], stats['date_max'])
                 avg_price = price_df['close'].mean()
                 if avg_amount >= 5e8 and avg_price >= 3:
                     filtered.append({'code': code, 'name': row['name'], 'avg_amount': avg_amount})
-        except Exception:
-            pass  # 静默跳过无效股票数据
+        except Exception as e:
+            logger.debug("stock data filter failed: %s", e)
         if len(filtered) >= 200:  # 限制数量加速
             break
     
@@ -111,13 +113,13 @@ print("调仓次数: %s 次" % len(rebalance_dates)
     annual_return = ((final_value / initial_cash) ** (365 / days) - 1) * 100
     
     # 6. 输出结果
-print("%s" % "\n" + "=" * 60)
+    print("%s" % "\n" + "=" * 60)
     print("回测结果")
-print("%s" % "=" * 60)
-print("初始资金:     CNY %s" % initial_cash:,.0f)
-print("最终资产:     CNY %s" % final_value:,.2f)
-print("总收益率:     %s%" % total_return:+.2f)
-print("年化收益率:   %s%" % annual_return:+.2f)
+    print("%s" % "=" * 60)
+    print("初始资金:     CNY %s" % f"{initial_cash:,.0f}")
+    print("最终资产:     CNY %s" % f"{final_value:,.2f}")
+    print("总收益率:     %.2f%%" % (total_return * 100))
+    print("年化收益率:   %.2f%%" % (annual_return * 100))
     print("夏普比率:     ~1.2 (估算)")
     print("最大回撤:     ~15% (估算)")
 print("%s" % "=" * 60)

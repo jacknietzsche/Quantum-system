@@ -31,7 +31,7 @@ def main():
         c.execute(sql)
         rows = c.fetchall()
         elapsed = (time.time() - start) * 1000
-print("%s: %sms (%s行)" % name, elapsed:.1f, len(rows)
+        print("%s: %.1fms (%s行)" % (name, elapsed, len(rows)))
     
     conn.close()
     print("优化完成!")

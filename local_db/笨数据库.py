@@ -14,7 +14,6 @@
 import sqlite3
 import os
 import shutil
-import logging
 import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
@@ -69,15 +68,9 @@ CONSECUTIVE_FAILURE_THRESHOLD = 2  # 连续2次失败就切换
 # ================================================================
 # 日志配置
 # ================================================================
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+from core.logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
 
 # 需要转为 float 的列
 NUMERIC_COLS = ["open", "high", "low", "close", "volume", "amount", "turnover", "pct_chg"]
@@ -731,8 +724,8 @@ class 笨数据库:
         if self._bs_session is not None:
             try:
                 bs.logout()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("session logout ignored: %s", e)
 
         lg = bs.login()
         if lg.error_code != "0":
@@ -748,8 +741,8 @@ class 笨数据库:
         if self._bs_session is not None:
             try:
                 self._bs_session.logout()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("session close ignored: %s", e)
             self._bs_session = None
 
     def _fetch_baostock_daily(self, code: str, start_date: str, end_date: str) -> Optional[pd.DataFrame]:
