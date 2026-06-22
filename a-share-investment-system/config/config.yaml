@@ -1,0 +1,344 @@
+data:
+  primary_source: tencent
+  fallback_chain:
+  - tencent
+  - sina
+  - akshare
+  - sina_financial
+  - tushare
+  - zt_pool
+  rate_limit:
+    total: 5
+    scheduled: 3
+  cache_hours: 4
+  ttl:
+    realtime_quote: 300
+    kline_daily: market_close
+    north_flow: 300
+    market_breadth: 300
+    index_quote: 300
+    hot_stocks: 300
+    company_fundamentals: 604800
+    industry_info: 604800
+llm:
+  default_model: chatanywhere:gpt-4o
+  timeout: 30
+  max_retries: 3
+  model_roles:
+    primary: chatanywhere:gpt-4o
+    secondary: deepseek:deepseek-v4-pro
+    validator: juguang:claude-opus-4-6
+    fallback: openrouter:nvidia/nemotron-3-super-120b-a12b:free
+  providers:
+    deepseek:
+      base_url: https://api.deepseek.com/v1
+      models:
+      - deepseek-v4-pro
+    siliconflow:
+      base_url: https://api.siliconflow.cn/v1
+      models:
+      - deepseek-ai/DeepSeek-R1
+      - deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
+      - Qwen/Qwen2.5-7B-Instruct
+      - THUDM/GLM-4-9B-0414
+      - THUDM/GLM-Z1-9B-0414
+    chatanywhere:
+      base_url: https://api.chatanywhere.com.cn/v1
+      models:
+      - gpt-4o
+    juguang:
+      base_url: https://ai.juguang.chat/v1
+      models:
+      - claude-opus-4-6
+    cherryin:
+      base_url: https://open.cherryin.net/v1
+      models:
+      - agent/deepseek-v3.2(free)
+      - agent/qwen3-coder-30b-a3b-instruct(free)
+      - deepseek/deepseek-v3.2(free)
+    openrouter:
+      base_url: https://openrouter.ai/api/v1
+      models:
+      - nvidia/nemotron-3-super-120b-a12b:free
+      - poolside/laguna-m.1:free
+      - openai/gpt-oss-120b:free
+risk:
+  default_min_cash_pct: 0.3
+  high_confidence_min_cash: 0.1
+  high_confidence_threshold: 85
+  max_single_stock_pct: 0.2
+  max_holdings: 10
+  stop_loss_pct: -10
+  take_profit_pct: 30
+  market_panic_threshold: 80
+  stock_risk_threshold: 50
+  tail_risk_threshold: 70
+trading:
+  commission_rate: 0.0003
+  stamp_tax_rate: 0.001
+  slippage: 0.001
+  min_commission: 5
+  initial_capital: 100000
+signal:
+  buy_threshold: 60
+  sell_threshold: 60
+  force_threshold: 85
+  decay_days: 3
+report:
+  output_dir: reports
+  format: html
+  include_debate: true
+  include_rag: true
+  history_keep_days: 30
+notification:
+  enabled: true
+  channels:
+  - console
+  - email
+  email:
+    smtp_server: smtp.qq.com
+    smtp_port: 465
+    sender: ''
+    auth_code: ''
+    receiver: ''
+    sender_name: A股智能投研系统
+scheduler:
+  nightly_hour: 22
+  nightly_minute: 0
+  weekly_review_hour: 20
+  timezone: Asia/Shanghai
+llm_providers:
+  deepseek.com:
+    base_url: https://api.deepseek.com/v1
+    api_key: ${DEEPSEEK_API_KEY}
+  chatanywhere.com.cn:
+    base_url: https://api.chatanywhere.com.cn/v1
+    api_key: ${CHATANYWHERE_API_KEY}
+  juguang:
+    base_url: https://ai.juguang.chat/v1
+    api_key: ${JUGUANG_API_KEY}
+  openrouter:
+    base_url: https://openrouter.ai/api/v1
+    api_key: ${OPENROUTER_API_KEY}
+screening:
+  deep_analysis:
+    enabled: true
+    model: deepseek.com:deepseek-v4-pro
+    fallback_model: juguang:claude-opus-4-6
+    models:
+    - deepseek.com:deepseek-v4-pro
+    - juguang:claude-opus-4-6
+    - openrouter:nvidia/nemotron-3-super-120b-a12b:free
+    - openrouter:poolside/laguna-m.1:free
+    - openrouter:openai/gpt-oss-120b:free
+    ensemble_top_k: 8
+    parallel_limit: 3
+    temperature: 0.7
+    max_tokens: 4000
+  styles:
+    limit_up:
+      description: 涨停狙击 — 日频短线博弈
+      hold_days: 1-5个交易日
+      stage1:
+        top_n: 200
+        score_min: 3
+        turnover_min: 0.5
+        market_cap_min: 0
+        max_market_cap: 999999
+        volatility_max: 99
+        st_filter: true
+      stage2:
+        top_n: 50
+        score_min: 2
+        min_master_score: 45
+        min_keep: 30
+      stage3:
+        deep_top: 50
+        final_top: 10
+        max_adjustment: 18
+        force_dissent_review: true
+        master_agents:
+        - limit_up_master
+        - cathie_wood
+        - michael_burry
+        - turtle_master
+        weights:
+          limit_up_master: 0.3
+          cathie_wood: 0.2
+          michael_burry: 0.2
+          turtle_master: 0.3
+      stage4:
+        enabled: true
+        top_n: 5
+        model: siliconflow:deepseek-ai/DeepSeek-R1
+        max_tokens: 4000
+        temperature: 0.7
+        skills:
+        - limit-up-strategy
+        - buffett
+        workflow:
+        - research
+        - debate
+        - risk
+        - signal
+    momentum:
+      description: 中期趋势 — 日频顺势跟踪
+      hold_days: 2-4周
+      stage1:
+        top_n: 200
+        turnover_min: 0.3
+        market_cap_min: 20
+        max_market_cap: 999999
+        volatility_max: 30
+        st_filter: true
+        require_ma_uptrend: true
+      stage2:
+        top_n: 50
+        score_min: 4
+        min_master_score: 40
+        min_keep: 30
+      stage3:
+        deep_top: 50
+        final_top: 15
+        max_adjustment: 15
+        master_agents:
+        - momentum_master
+        - peter_lynch_growth
+        - cathie_wood
+        - livermore_master
+        weights:
+          momentum_master: 0.3
+          peter_lynch_growth: 0.25
+          cathie_wood: 0.2
+          livermore_master: 0.25
+      stage4:
+        enabled: true
+        top_n: 5
+        model: siliconflow:deepseek-ai/DeepSeek-R1
+        max_tokens: 4000
+        temperature: 0.7
+        skills:
+        - momentum-strategy
+        - munger-perspective
+        workflow:
+        - research
+        - debate
+        - risk
+        - signal
+    value:
+      description: 长期价值 — 基本面深度 + 日频择时
+      hold_days: 1-12月
+      stage1:
+        top_n: 200
+        turnover_min: 0.2
+        market_cap_min: 50
+        st_filter: true
+      stage2:
+        top_n: 30
+        score_min: 5
+        min_master_score: 50
+        min_keep: 20
+      stage3:
+        deep_top: 30
+        final_top: 8
+        max_adjustment: 10
+        require_margin_of_safety: 15
+        master_agents:
+        - buffett
+        - graham
+        - taleb
+        - munger
+        weights:
+          buffett: 0.35
+          graham: 0.25
+          taleb: 0.2
+          munger: 0.2
+      stage4:
+        enabled: true
+        top_n: 5
+        model: siliconflow:deepseek-ai/DeepSeek-R1
+        max_tokens: 4000
+        temperature: 0.7
+        skills:
+        - buffett
+        - valuation-investment-strategy
+        workflow:
+        - research
+        - debate
+        - risk
+        - signal
+    hybrid:
+      description: 混合均衡 — 综合打分（默认）
+      hold_days: 2-8周
+      hard_filters:
+        min_amount: 50000000
+        min_turnover_rate: 0.5
+        min_roe: 10
+        require_uptrend: false
+        st_filter: true
+        top_n: 200
+        regime_overrides:
+          BULL:
+            min_amount: 80000000
+            min_roe: 12
+          BEAR:
+            min_amount: 30000000
+            min_turnover_rate: 0.3
+          VOLATILE:
+            min_amount: 100000000
+      signals:
+        buy: 60
+        hold: 40
+      stage2:
+        top_n: 40
+        min_master_score: 45
+        min_keep: 25
+      stage3:
+        deep_top: 40
+        final_top: 8
+        max_adjustment: 12
+        master_agents:
+        - buffett
+        - graham
+        - lynch
+        - taleb
+        weights:
+          buffett: 0.35
+          graham: 0.2
+          lynch: 0.25
+          taleb: 0.2
+      stage4:
+        enabled: true
+        top_n: 5
+        model: siliconflow:deepseek-ai/DeepSeek-R1
+        max_tokens: 4000
+        temperature: 0.7
+        skills:
+        - buffett
+        - valuation-investment-strategy
+        workflow:
+        - research
+        - debate
+        - risk
+        - signal
+mode: balanced
+mode_presets:
+  conservative:
+    min_cash_pct: 0.4
+    max_single_stock_pct: 0.15
+    buy_threshold: 70
+    sell_threshold: 55
+  balanced:
+    min_cash_pct: 0.3
+    max_single_stock_pct: 0.2
+    buy_threshold: 60
+    sell_threshold: 60
+  aggressive:
+    min_cash_pct: 0.15
+    max_single_stock_pct: 0.25
+    buy_threshold: 50
+    sell_threshold: 65
+
+itick:
+  base_url: https://api-free.itick.org
+  timeout: 10

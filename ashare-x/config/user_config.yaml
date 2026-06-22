@@ -1,0 +1,14 @@
+base_url: ''
+custom_prompt: ''
+debate_rounds: 3
+deep_think_model: deepseek-reasoner
+default_analysts:
+- market
+- fundamentals
+- news
+- sentiment
+llm_provider: deepseek
+monthly_budget_rmb: 100
+output_language: zh
+quick_think_model: deepseek-chat
+risk_rounds: 1

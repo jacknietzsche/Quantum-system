@@ -1,0 +1,109 @@
+# === 顶层 .gitignore ===
+# 包含: AShare-X 重写版, 遗留 a-share-investment-system, quant-agents 外部库
+
+# === 工具配置 & 工作目录 ===
+.claude/
+.codely-cli/
+.mimocode/
+.omc/
+.workbuddy/
+.aider*
+.cursor/
+
+# === Python 缓存 ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# === 虚拟环境 ===
+.venv/
+venv/
+env/
+
+# === 密钥与本地配置 (永不提交) ===
+.env
+.env.local
+*.env.local
+config.json
+config/config.local.yaml
+
+# === Node / Frontend ===
+node_modules/
+frontend/dist/
+electron/dist-frontend/
+electron/release/
+
+# === 数据库 & 数据缓存 ===
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+.codegraph/
+
+# === 日志 / 报告 / 备份 ===
+*.log
+logs/
+reports/
+backups/
+runtime/
+
+# === IDE / OS ===
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# === Build artifacts ===
+static/assets/*.js
+static/assets/*.css
+
+# === Test scripts ===
+_*.py
+scripts/
+*.tmp
+*.bak
+
+# === Ripgrep binary (Windows) ===
+ripgrep-*-x86_64-pc-windows-msvc/
+
+# === 大型二进制 / 资源文件 (外部 quant-agents 仓库的素材) ===
+*.psd
+*.mp4
+*.mov
+*.avi
+*.webm
+*.wav
+*.flac
+*.mp3
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+*.webp
+*.ipynb_checkpoints/
+public/assets/
+public/stock*
+
+# === 单独覆盖 ===
+!AGENTS.md
+!*.md

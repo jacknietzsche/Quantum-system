@@ -1,0 +1,33 @@
+﻿{
+  "name": "turtle-trading-rules",
+  "version": "1.0",
+  "description": "海龟交易法则 — 趋势跟踪系统",
+  "category": "trend",
+  "selection": {
+    "min_volume_ratio": 1.0,
+    "custom_filters": [
+      {"field": "change_pct_20d", "operator": ">", "value": 0},
+      {"field": "volatility_20d", "operator": ">", "value": 0.15},
+      {"field": "volatility_20d", "operator": "<", "value": 0.60}
+    ]
+  },
+  "scoring": {
+    "weights": {
+      "momentum_20d": 0.30,
+      "atr_14": 0.20,
+      "volume_ratio": 0.15,
+      "ma_alignment": 0.20,
+      "trend": 0.15
+    },
+    "base_score": 30,
+    "max_score": 100
+  },
+  "risk": {
+    "stop_loss_pct": -10,
+    "take_profit_pct": 30,
+    "max_position_pct": 15,
+    "max_holdings": 8,
+    "trailing_stop": true,
+    "atr_stop_multiplier": 2.0
+  }
+}

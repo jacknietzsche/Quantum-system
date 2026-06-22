@@ -1,0 +1,254 @@
+# ============================================================
+# QuantLLM 中心化配置
+# 所有脚本通过 scripts/_config.py 读取本文件
+# ============================================================
+
+# 项目路径（自动检测，通常不需要修改）
+# project_root: /opt/quant-llm
+
+# ----------------------------------------------------------
+# 数据路径
+# ----------------------------------------------------------
+data:
+  training_dir: training-data          # 相对于 project_root
+  ashare_dir: training-data/ashare
+  futures_dir: training-data/futures
+  etf_dir: training-data/etf
+  cbond_dir: training-data/cbond
+
+# ----------------------------------------------------------
+# 模型配置
+# ----------------------------------------------------------
+model:
+  base_model: /root/.cache/huggingface/hub/models--unsloth--qwen2.5-14b-bnb-4bit/snapshots/7fb3a0220f2a2bb6a6565ca46b97bb3badb17ace
+  max_seq_length: 2048
+  output_dir: output/quant-qwen2.5-14b-v4-trapboost
+  version: v4-trapboost                               # trapboost 预测引擎
+
+# ----------------------------------------------------------
+# LoRA 配置
+# ----------------------------------------------------------
+lora:
+  r: 32
+  alpha: 32
+  dropout: 0
+  use_rslora: true
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+# ----------------------------------------------------------
+# 训练超参
+# ----------------------------------------------------------
+training:
+  batch_size: 1
+  gradient_accumulation_steps: 8       # 等效 batch_size=8
+  learning_rate: 1.0e-4
+  num_train_epochs: 3
+  warmup_steps: 100
+  bf16: true
+  optim: adamw_8bit
+  logging_steps: 50
+  save_steps: 2000
+  save_total_limit: 3
+  eval_steps: 500                      # 验证频率
+  eval_ratio: 0.02                     # 验证集比例
+  early_stopping_patience: 20          # 连续 N 次 eval loss 不降则停止
+  seed: 42
+
+# ----------------------------------------------------------
+# Ollama 配置（数据增强用）
+# ----------------------------------------------------------
+ollama:
+  url: http://127.0.0.1:11434/api/chat
+  generation_model: qwen3:14b          # 种子扩展
+  live_rank_model: qwen3:4b-nothink    # 实盘精排优先模型（低延迟）
+  reasoning_model: deepseek-r1:32b     # 推理链增强
+  temperature: 0.7
+  timeout: 300                         # 秒
+
+# ----------------------------------------------------------
+# Qwen3 Skills（精排等结构化任务）
+# ----------------------------------------------------------
+skills:
+  stock_rank:
+    temperature: 0
+    seed: 42
+    num_predict: 1024
+    timeout: 90                         # 单次精排超时，超时后快速回退
+    attempts: 1                         # 技能层尝试次数（失败走规则兜底）
+    ollama_max_retries: 1              # 底层 HTTP 重试次数
+    top_n: 10                            # 精排输出 top N
+
+# ----------------------------------------------------------
+# System Prompt（所有训练数据统一）
+# ----------------------------------------------------------
+system_prompt: 你是一个专业的量化交易专家，擅长策略开发、因子分析、回测评估和风险管理。本AI仅提供信息参考，不构成投资建议，据此交易风险自负。
+
+# ----------------------------------------------------------
+# 数据转换限制
+# ----------------------------------------------------------
+convert:
+  ashare_limit: 5000
+  futures_limit: 2000
+  etf_limit: 2000
+  cbond_limit: 1500
+
+# ----------------------------------------------------------
+# 评估配置
+# ----------------------------------------------------------
+eval:
+  holdout_ratio: 0.02
+  max_holdout: 100
+  results_file: output/eval_results.json
+
+# ----------------------------------------------------------
+# 模拟盘风控配置（Phase 2）
+# ----------------------------------------------------------
+# ----------------------------------------------------------
+# 交易评分阈值（Phase 2 模拟盘用）
+# ----------------------------------------------------------
+score_thresholds:
+  buy: 70                              # score >= 此值触发买入
+  sell: 30                             # score <= 此值触发卖出
+  # 牛市/熊市自适应（牛市放宽，熊市收紧）
+  bull_buy: 60
+  bull_sell: 40
+  bear_buy: 80
+  bear_sell: 20
+  # 牛熊判定：指数在 N 日均线上方且均线向上 = 牛市
+  regime_ma_days: 120
+  # 评分防抖：变化需超过此值才改变动作
+  change_threshold: 10
+
+# ----------------------------------------------------------
+# 选股筛选条件（强制，不符合的不进入模型评分）
+# ----------------------------------------------------------
+stock_filter:
+  min_turnover_rate: 0.03             # 换手率 >= 3%
+  max_total_shares: 2_000_000_000     # 总股本 < 20亿股
+  bottom_detection: true              # 底部筛选开启
+  apply_in_regimes: ["震荡", "熊市"]  # 仅震荡市和熊市生效，牛市不适用
+  # 底部判定条件（满足任意两条即视为底部区域）
+  bottom_rules:
+    rsi_below: 35                     # RSI < 35
+    price_near_52w_low_pct: 0.15      # 股价距52周最低点 < 15%
+    ma_deviation_below: -0.10         # 股价低于MA120超过10%
+    macd_bottom_divergence: true      # MACD底背离
+
+risk_control:
+  # 仓位控制
+  max_position_pct: 0.10              # 单票最大仓位占总资产比例
+  max_total_position_pct: 0.80        # 总仓位上限
+  # 止损/止盈
+  stop_loss_pct: -0.12               # 单票止损线（默认-12%，反转策略避免过早止损）
+  portfolio_stop_loss_pct: -0.30     # 组合止损线（亏30%清仓暂停，即70%A）
+  take_profit_target: 2.0            # 目标净值倍数（翻倍止盈，提取利润）
+  trailing_take_profit: true         # 启用移动止盈（回撤触发）
+  trailing_activation_pct: 0.12      # 浮盈达到12%后开始跟踪止盈
+  trailing_drawdown_pct: 0.06        # 从最高价回撤6%触发止盈
+  # 日度限制
+  max_daily_loss_pct: -0.03          # 单日最大亏损（-3%触发暂停）
+  max_daily_trades: 20                # 单日最大交易笔数
+  anomaly_single_order_amount_cny: 120000  # 单笔金额异常阈值
+  anomaly_daily_buy_amount_cny: 300000     # 当日买入总额异常阈值
+  anomaly_fail_ratio: 0.60                 # 回执失败率异常阈值
+  # 市场环境
+  turbulence_threshold: 3.0          # 波动率异常倍数（>3σ自动减仓）
+  # 交易成本仿真
+  slippage_pct: 0.0003               # 滑点（万分之三）
+  commission_pct: 0.00025            # 佣金（万分之二点五）
+  volume_limit_pct: 0.05             # 成交量限制（不超过当日总量5%）
+
+# ----------------------------------------------------------
+# RAG 检索增强配置
+# ----------------------------------------------------------
+# ----------------------------------------------------------
+# 板块 ETF 列表（板块轮动策略用）
+# ----------------------------------------------------------
+sector_etfs:
+  科技: "515000"
+  消费: "159928"
+  医药: "512010"
+  金融: "510050"
+  新能源: "516160"
+  军工: "512660"
+  半导体: "512480"
+  证券: "512880"
+  有色金属: "512400"
+  房地产: "512200"
+  基建: "516970"
+  传媒: "512980"
+
+# ----------------------------------------------------------
+# 回测配置
+# ----------------------------------------------------------
+backtest:
+  start_date: "2025-01-01"
+  end_date: "2025-12-31"
+  initial_capital: 100000
+  benchmark: "510300"                        # 沪深300 ETF
+  rebalance_freq: "weekly"                   # ETF轮动调仓频率
+  max_positions: 10
+
+# ----------------------------------------------------------
+# RAG 检索增强配置
+# ----------------------------------------------------------
+rag:
+  enabled: true
+  embedding_model: BAAI/bge-large-zh-v1.5
+  index_file: output/rag_index.faiss
+  metadata_file: output/rag_metadata.jsonl
+  top_k: 3
+  score_threshold: 0.35
+  max_ref_tokens: 460
+
+# ----------------------------------------------------------
+# 双层实盘执行配置（规则初筛 + Qwen14B 精筛/执行）
+# ----------------------------------------------------------
+trade_live:
+  max_universe: 1200               # 每次扫描股票数量上限
+  prefilter_top_k: 50              # 规则引擎初筛保留数量
+  max_positions: 10                # 精筛后持仓上限
+  weekly_min_picks: 3              # 每周最少推送可买入优质股数量
+  weekly_max_picks: 10             # 每周最多推送可买入优质股数量
+  vol_target_enabled: true             # 启用目标波动率仓位缩放
+  target_vol_annual: 0.15              # 目标组合年化波动率
+  vol_scale_min: 0.50                  # 波动率缩放下限
+  vol_scale_max: 1.30                  # 波动率缩放上限
+  manual_override_file: output/trade_live.OVERRIDE.json  # 手动覆盖配置（阻断/放行/强平）
+  capital_pause_file: output/trade_live.CAPITAL_PAUSE     # 触发70%A止损暂停标记
+  profit_take_file: output/trade_live.PROFIT_TAKE.json    # 触发2A止盈提取提示
+  capital_management:
+    enabled: true
+    initial_capital: 100000
+    profit_take_multiple: 2.0
+    drawdown_pause_multiple: 0.7
+  stock_factor_file: training-data/factors/stock_factors_latest.json  # 基本面/北向资金因子输入
+  asym_rebound_confirm_trend_20d: 1.0  # 非对称买入：20日趋势至少转正到该阈值再买
+  asym_rebound_rsi_threshold: 42.0      # RSI低于该值视为低位区，触发“先确认后买”
+  asym_sell_min_fraction: 0.30          # 非对称卖出：单轮最少卖出比例
+  asym_sell_max_fraction: 0.65          # 非对称卖出：单轮最多卖出比例
+  enable_real_orders: true        # 允许真实下单（仍需 trade_live_qwen.py --execute）
+  broker: eastmoney_sim              # eastmoney_paper/eastmoney_sim（与 runner 默认保持一致）
+  min_rebalance_delta: 0.01          # 调仓最小变动阈值(1%)
+  kill_switch_file: output/trade_live.KILL  # 存在即阻断 execute
+  log_dir: output/trade_logs
+  allocation:
+    strong_buy: 0.15               # strong_buy 原始权重
+    buy: 0.10                      # buy 原始权重
+  eastmoney_zjzh: 260680400000080882  # 强制执行账户：模拟组合6880882
+  regime_target_exposure:
+    bull: 0.95
+    sideways: 0.50
+    bear: 0.30
+  regime_max_positions:
+    bull: 10
+    sideways: 5
+    bear: 3
+  score_weight_power: 1.0

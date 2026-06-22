@@ -1,0 +1,32 @@
+﻿{
+  "name": "livermore-trading-methods",
+  "version": "1.0",
+  "description": "利弗莫尔交易法 — 关键点位+趋势确认",
+  "category": "trend",
+  "selection": {
+    "custom_filters": [
+      {"field": "ma_alignment", "operator": "==", "value": "bullish"},
+      {"field": "change_pct_5d", "operator": ">", "value": 0},
+      {"field": "pe_ratio", "operator": ">", "value": 0}
+    ]
+  },
+  "scoring": {
+    "weights": {
+      "trend": 0.30,
+      "ma_alignment": 0.25,
+      "momentum_20d": 0.20,
+      "volume_ratio": 0.15,
+      "roe": 0.10
+    },
+    "base_score": 25,
+    "max_score": 100
+  },
+  "risk": {
+    "stop_loss_pct": -8,
+    "take_profit_pct": 25,
+    "max_position_pct": 20,
+    "max_holdings": 6,
+    "trailing_stop": true,
+    "atr_stop_multiplier": 1.5
+  }
+}

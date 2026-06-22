@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #F4F3F0;
+    --green: #A8A498;
+    --pink: #2D6A4F;
+    --ink: #2D2926;
+    --ink-light: #5C5350;
+    --white: #FFFFFF;
+    --serif: 'DM Serif Display', 'KingHwa_OldSong', Georgia, 'Noto Serif SC', serif;
+    --sans: 'DM Sans', 'KingHwa_OldSong', -apple-system, 'PingFang SC', system-ui, sans-serif;
+    --mono: 'SF Mono', 'Menlo', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; background: var(--bg); }
+
+  .page {
+    width: 1080px;
+    background: var(--bg);
+    position: relative;
+    font-family: var(--sans);
+    color: var(--ink);
+  }
+
+  .page > .grain {
+    position: absolute;
+    inset: 0;
+    filter: url(#noise);
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  mark { background: rgba(45,106,79,0.12); color: inherit; padding: 4px 10px; border-radius: 4px; }
+
+  .narrative {
+    padding: 36px 0;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 48px;
+  }
+  .narrative p {
+    font: 400 32px/1.75 var(--serif);
+    color: var(--ink);
+    max-width: 960px;
+  }
+  .narrative p strong {
+    color: var(--pink);
+    font-weight: 700;
+  }
+
+  .colophon {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 60px 36px;
+    border-top: 1px solid rgba(45,41,38,0.08);
+  }
+
+  .colophon .who {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .colophon .who img {
+    width: 40px; height: 40px;
+    border-radius: 50%; object-fit: cover;
+  }
+
+  .colophon .who span {
+    font: 400 24px/1 var(--sans);
+    color: var(--ink-light);
+  }
+
+  .colophon .info-source {
+    font: 400 22px/1 var(--mono);
+    color: var(--ink-light);
+  }
+
+  {{CUSTOM_CSS}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="noise">
+    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/>
+  </filter>
+</svg>
+<div class="page">
+  <div class="grain"></div>
+  {{NARRATIVE}}
+  {{CONTENT_HTML}}
+  <div class="colophon">
+    <div class="who">
+      <img src="logo.png" alt="">
+      <span>Report Reader</span>
+    </div>
+    {{SOURCE_LINE}}
+  </div>
+</div>
+</body>
+</html>

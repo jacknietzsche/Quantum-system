@@ -1,0 +1,22 @@
+# 本地配置文件（包含敏感信息）
+skills/china_cb_analysis/config.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 其他
+*.log
+.env

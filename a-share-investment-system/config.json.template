@@ -1,0 +1,51 @@
+{
+    "_comment": "AShare-X 运行时配置。复制此文件为 config.json 并填写真实值。",
+    "_note": "config.json 已被 .gitignore 排除，不会误提交密钥。",
+
+    "models": {
+        "主力": "deepseek-chat",
+        "辅助": "gpt-4o-mini",
+        "验证": "gpt-4o",
+        "_comment": "支持的 provider: deepseek-chat, gpt-4o, gpt-4o-mini, qwen-plus, qwen-turbo"
+    },
+
+    "api_keys": {
+        "deepseek": "sk-xxx",
+        "openai": "sk-xxx",
+        "qwen": "sk-xxx",
+        "_comment": "至少配置一个用到的 LLM 的 API key"
+    },
+
+    "risk": {
+        "max_position_size_pct": 0.15,
+        "max_sector_exposure_pct": 0.30,
+        "stop_loss_pct": -0.08,
+        "max_leverage": 1.0,
+        "var_confidence_level": 0.95,
+        "_comment": "风控参数：单票上限15%，单板块上限30%，止损-8%"
+    },
+
+    "data_sources": {
+        "preferred": "akshare",
+        "fallback_chain": ["akshare", "baostock", "tencent", "sina"],
+        "_comment": "数据源优先级链。可用: akshare, baostock, tencent, sina, efinance"
+    },
+
+    "scheduler": {
+        "daily_time": "15:30",
+        "enabled": true,
+        "_comment": "定时任务：每日收盘后自动执行日频分析"
+    },
+
+    "frontend": {
+        "port": 5173,
+        "theme": "dark",
+        "_comment": "前端开发服务器配置"
+    },
+
+    "logging": {
+        "level": "INFO",
+        "max_log_days": 30,
+        "_comment": "日志级别: DEBUG/INFO/WARNING/ERROR"
+    }
+}

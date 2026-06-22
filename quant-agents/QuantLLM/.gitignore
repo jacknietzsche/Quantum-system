@@ -1,0 +1,59 @@
+# 虚拟环境
+finetune-env/
+
+# 编译缓存
+unsloth_compiled_cache/
+
+# 行情原始数据（太大）
+training-data/ashare/
+
+# 大型公开数据集（超100MB，需本地下载）
+training-data/BAAI_IndustryInstruction_Finance-Economics/
+training-data/finance-instruct-500k/
+training-data/github-repos/
+
+# 模型输出（太大，本地保留）
+output/gguf/
+output/quant-qwen2.5-14b-lora/
+output/quant-qwen2.5-14b-lora-r32/
+
+# RAG 索引（太大，本地保留）
+output/rag_index.faiss
+output/rag_metadata.jsonl
+
+# 运行日志和截图
+output/*.log
+output/*.png
+output/*.txt
+
+# 训练数据 JSONL（可通过脚本重新生成）
+training-data/*.jsonl
+
+# 多市场行情原始数据
+training-data/futures/
+training-data/etf/
+training-data/cbond/
+
+# 进度文件
+*progress.json
+*_stats.json
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# 东方财富凭据
+.eastmoney_cookies.json
+
+# 评估结果（可重新生成）
+output/eval_results*.json
+output/eval.pid
+
+# 运行产物与本地大目录（避免污染仓库状态）
+logs/
+output/
+training-data/
+archive/legacy/
+training-data
+docs/daily_reports/

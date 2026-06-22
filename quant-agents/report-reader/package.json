@@ -1,0 +1,9 @@
+{
+  "name": "report-reader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "财报解读信息图生成工具",
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

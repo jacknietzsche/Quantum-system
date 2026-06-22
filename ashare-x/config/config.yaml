@@ -1,0 +1,86 @@
+# AShare-X 主配置
+# 本文件可提交（不含密钥）。密钥放 .env（gitignore）。优先级: env > 本文件 > 代码默认值。
+
+# ── LLM ───────────────────────────────────────────────────────────
+llm:
+  # RMB 月成本预算（exp14 实测口径，非 token 预算）
+  monthly_budget_rmb: 1000
+  # 三级降级: 80% 告警 / 100% 快速模式 / 120% 暂停
+  budget_warn_ratio: 0.8
+  budget_fast_mode_ratio: 1.0
+  budget_halt_ratio: 1.2
+
+  # 快速思维: 工具调用、状态更新（V4-Flash，高并发、低成本）
+  quick_think:
+    provider: deepseek
+    model: deepseek-chat              # V4-Flash 路由别名
+    temperature: 0.7
+    max_tokens: 4000
+    enable_cache: true                # 命中 prompt 缓存（cached_input 单独计价）
+
+  # 深度思维: 复杂推理、报告生成（V4-Pro）
+  deep_think:
+    provider: deepseek
+    model: deepseek-reasoner          # V4-Pro 路由别名
+    temperature: 0.7
+    max_tokens: 8000
+    enable_cache: true
+
+  # DeepSeek 连接
+  deepseek:
+    base_url: https://api.deepseek.com
+    # api_key 由 .env 的 DEEPSEEK_API_KEY 注入
+
+# ── 数据层 ────────────────────────────────────────────────────────
+data:
+  # 数据库优先策略（见 S05 / experiments exp6）
+  cache_first: true
+  # 数据源链（按优先级）: akshare → baostock → tencent → sina → eastmoney
+  sources:
+    - akshare
+    - baostock
+    - tencent
+    - sina
+    - eastmoney
+  # 断路器（见 providers/base.py）
+  circuit_breaker:
+    failure_threshold: 3
+    cooldown_seconds: 300
+  # 重试
+  retry:
+    max_attempts: 3
+    backoff_base: 2                   # 指数退避: 2^n 秒
+
+# ── 日志 ──────────────────────────────────────────────────────────
+log:
+  level: INFO                         # DEBUG / INFO / WARNING / ERROR
+  lang: zh                            # zh / en (见 core/i18n.py)
+  json_structured: true               # JSON 结构化日志（见 exp12.2）
+
+# ── 组合管理 ────────────────────────────────────────────────────
+portfolio:
+  initial_capital: 100000        # 初始资金（10万）
+  max_holdings: 5                # 最大持仓数
+  max_single_pct: 0.30           # 单只最高30%
+  min_cash_pct: 0.20             # 最低保留20%现金
+  max_industry_pct: 0.40         # 单行业最高40%
+  # A股交易规则
+  lot_size: 100                  # 最小交易单位
+  commission_rate: 0.00025       # 佣金费率
+  min_commission: 5              # 最低佣金（元）
+  stamp_tax_rate: 0.001          # 印花税（卖出方）
+  transfer_fee_rate: 0.00001     # 过户费
+
+# ── 交易计划 ────────────────────────────────────────────────────
+trading_plan:
+  watchlist_size: 30              # 观察名单最大数量
+  daily_analysis_batch: 30         # 每日深度分析数量（含持仓，全量分析）
+  scan_top_n: 50                  # 扫描返回前N名
+  auto_trade: true                # 自动执行模拟交易
+
+# ── 运行时 ────────────────────────────────────────────────────────
+runtime:
+  db_path: runtime/investment.db
+  checkpoints_dir: runtime/checkpoints
+  logs_dir: logs
+  reports_dir: reports

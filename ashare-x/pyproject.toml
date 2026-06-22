@@ -1,0 +1,200 @@
+# =============================================================================
+# AShare-X — 全新重写版 Python 项目配置
+# 依据: experiments/IMPLEMENTATION_PLAN.md (全新重写, 与 a-share-investment-system/ 并存)
+# 规范对齐: AGENTS.md (Python 3.10+, ruff, line-length=100, 双引号, LF)
+# =============================================================================
+
+[project]
+name = "ashare-x"
+version = "0.1.0"
+description = "AShare-X — 多Agent协作的A股智能投研系统（全新重写版）"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+readme = "README.md"
+
+dependencies = [
+    # 核心
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    # 工作流
+    "langgraph>=0.1",
+    "langchain-core>=0.1",
+    # 数据层
+    "sqlalchemy>=2.0",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "httpx>=0.27",          # 数据源 HTTP 客户端 + 断路器连接池
+    "python-dotenv>=1.0",
+    # LLM
+    "openai>=1.30",         # DeepSeek 兼容 OpenAI SDK
+    # 数据源（按需, Phase 1 不强依赖）
+    "akshare>=1.14",
+    # Phase 7: RAG向量检索 + 向量化回测
+    "chromadb>=0.5",
+    "vectorbt>=1.0",
+    # Phase 8: MCP server + ReAct tool calling
+    "mcp>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pytest-mock>=3.14",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "types-PyYAML",
+    "pandas-stubs",
+]
+
+# ── Ruff: Linting + Formatting (对齐 AGENTS.md 规范) ─────────────
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".git", ".venv", "venv", "__pycache__",
+    ".pytest_cache", ".mypy_cache", ".ruff_cache",
+    "runtime/", "logs/", "reports/",
+]
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "B", "C4", "SIM", "RET", "PL", "UP", "RUF", "S", "PIE", "ERA", "INP", "ISC"]
+ignore = [
+    "B018",       # 允许单行 docstring
+    "E731",       # 允许 lambda 赋值
+    "S110",       # try/except 中可省略日志
+    "PLR0913",    # too-many-arguments — Agent 函数参数多
+    "PLR2004",    # magic-value-comparison — 金融阈值是业内常识
+    "RUF001",     # 字符串中的模糊 Unicode（项目大量使用中文/全角符号）
+    "RUF002",     # docstring 中的模糊 Unicode（保持中文 docstring 原貌）
+    "RUF003",     # 注释中的模糊 Unicode（保持中文注释原貌）
+    "PLC0415",    # 局部 import — 故意惰性加载
+    "E402",       # 模块级 import 不在文件顶部 — 测试文件按需组织
+    "E701",       # 单行多语句 — 简单 if 允许
+    "PLR0912",    # too-many-branches — 市场状态判断逻辑密集
+    "PLR0915",    # too-many-statements — 业务函数较长
+    "S311",       # suspicious-non-cryptographic-random — 非加密场景允许
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004", "S106", "S310", "E501", "E402", "PLC0415", "RUF002", "RUF003"]
+"e2e_full.py" = ["S101", "E501", "ERA001", "F541", "F401", "PLW0603", "PLW1510", "F841", "E741", "I001", "PLR2004"]
+"main.py" = ["T201", "E501"]
+"server.py" = ["T201", "E501"]
+"launch.py" = ["S602", "S607", "S310", "S112", "T201", "E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+# ── MyPy ──────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+disallow_untyped_defs = false       # 渐进式
+check_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = [
+    "akshare.*",
+    "langgraph.*",
+    "langchain_core.*",
+    "pandas.*",
+    "yfinance.*",
+    "baostock.*",
+    "yaml",
+    "vectorbt",
+    "tests.*",
+    "graph.conditional_logic",
+    "tests.integration.test_real_scenario",
+    "tests.integration.test_data_real",
+    "tests.unit.test_workflow",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tools.stock_data",
+    "api.sse_manager",
+    "api.routes.analysis",
+    "providers.base",
+    "providers.data_bus",
+    "services.risk_engine",
+    "services.screening",
+    "services.report",
+    "services.portfolio",
+    "db.engine",
+    "memory.decision_log",
+    "core.llm_client",
+    "core.i18n",
+    "graph.propagation",
+    "graph.conditional_logic",
+    "tests.unit.test_state",
+    "tests.unit.test_workflow",
+    "tests.integration.test_data_pipeline",
+    "tests.integration.test_real_scenario",
+    "tests.integration.test_data_real",
+]
+disable_error_code = [
+    "assignment",
+    "attr-defined",
+    "no-any-return",
+    "arg-type",
+    "typeddict-unknown-key",
+    "var-annotated",
+    "union-attr",
+    "import-untyped",
+    "index",
+    "call-arg",
+    "operator",
+    "misc",
+    "return-value",
+    "override",
+]
+
+# ── Pytest ────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--cov=core",
+    "--cov=db",
+    "--cov=providers",
+    "--cov-report=term-missing",
+    "--cov-fail-under=50",
+]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "data: marks tests that fetch real data (need network)",
+]
+
+[tool.coverage.run]
+source = ["core", "db", "providers"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+]

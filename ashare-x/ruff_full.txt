@@ -1,0 +1,1112 @@
+﻿F841 Local variable `ticker` is assigned to but never used
+  --> agents\masters\review.py:77:9
+   |
+75 |             return {"master_signals": {}}
+76 |
+77 |         ticker = state.get("ticker", "")
+   |         ^^^^^^
+78 |         signals: dict[str, dict] = {}
+79 |         reports: dict[str, str] = {}
+   |
+help: Remove assignment to unused variable `ticker`
+
+F841 Local variable `prior_context` is assigned to but never used
+  --> agents\masters\review.py:90:9
+   |
+88 |                 prior_reports.append(f"### {key}\n{report[:500]}")
+89 |
+90 |         prior_context = "\n\n".join(prior_reports) if prior_reports else ""
+   |         ^^^^^^^^^^^^^
+91 |
+92 |         for master_name in selected:
+   |
+help: Remove assignment to unused variable `prior_context`
+
+PLR0911 Too many return statements (10 > 6)
+   --> agents\react.py:117:5
+    |
+117 | def _execute_tool(name: str, args: dict[str, Any]) -> str:
+    |     ^^^^^^^^^^^^^
+118 |     """执行工具调用，返回结果文本。"""
+119 |     try:
+    |
+
+E501 Line too long (102 > 100)
+   --> agents\react.py:169:95
+    |
+168 |             result = get_market_breadth()
+169 |             return json.dumps(result, ensure_ascii=False, default=str) if result else "无市场广度数据"
+    |                                                                                                      ^
+170 |
+171 |         return f"未知工具: {name}"
+    |
+
+SIM105 Use `contextlib.suppress(asyncio.QueueFull)` instead of `try`-`except`-`pass`
+   --> api\routes\analysis.py:156:9
+    |
+154 |       log_queue: asyncio.Queue = job.get("log_queue")
+155 |       if log_queue:
+156 | /         try:
+157 | |             log_queue.put_nowait({"level": level, "message": message, "time": _now()})
+158 | |         except asyncio.QueueFull:
+159 | |             pass
+    | |________________^
+    |
+help: Replace `try`-`except`-`pass` with `with contextlib.suppress(asyncio.QueueFull): ...`
+
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+  --> api\routes\data.py:79:9
+   |
+77 |     except Exception as e:
+78 |         logger.error("获取K线失败: %s", e)
+79 |         raise HTTPException(500, str(e))
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+  --> api\routes\reports.py:54:9
+   |
+52 |     except Exception as e:
+53 |         logger.error("获取报告详情失败: %s", e)
+54 |         raise HTTPException(500, str(e))
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+
+F841 Local variable `api_key` is assigned to but never used
+  --> api\routes\settings.py:97:9
+   |
+95 |         # 不保存API Key到文件（安全考虑）
+96 |         save_data = settings.model_dump()
+97 |         api_key = save_data.pop("api_key", "")
+   |         ^^^^^^^
+98 |
+99 |         with open(USER_CONFIG_PATH, "w", encoding="utf-8") as f:
+   |
+help: Remove assignment to unused variable `api_key`
+
+F401 [*] `json` imported but unused
+ --> e2e_full.py:2:8
+  |
+1 | """全功能端到端测试（不含LLM）。"""
+2 | import json
+  |        ^^^^
+3 | import os
+4 | import subprocess
+  |
+help: Remove unused import: `json`
+
+PLW0603 Using the global statement to update `PASS_COUNT` is discouraged
+  --> e2e_full.py:17:12
+   |
+16 | def test_step(name, func):
+17 |     global PASS_COUNT, FAIL_COUNT
+   |            ^^^^^^^^^^
+18 |     print(f"\n{'='*70}")
+19 |     print(f"  {name}")
+   |
+
+PLW0603 Using the global statement to update `FAIL_COUNT` is discouraged
+  --> e2e_full.py:17:24
+   |
+16 | def test_step(name, func):
+17 |     global PASS_COUNT, FAIL_COUNT
+   |                        ^^^^^^^^^^
+18 |     print(f"\n{'='*70}")
+19 |     print(f"  {name}")
+   |
+
+F541 [*] f-string without any placeholders
+  --> e2e_full.py:23:15
+   |
+21 |     try:
+22 |         func()
+23 |         print(f"  >>> PASS")
+   |               ^^^^^^^^^^^^^
+24 |         PASS_COUNT += 1
+25 |     except Exception as e:
+   |
+help: Remove extraneous `f` prefix
+
+S101 Use of `assert` detected
+  --> e2e_full.py:58:5
+   |
+56 |     kline = bus.get_kline("600519", days=60)
+57 |     print(f"  kline 600519: {len(kline) if kline else 0} bars")
+58 |     assert kline is not None or total == 0  # network may fail
+   |     ^^^^^^
+59 |
+60 |     # 基本面
+   |
+
+S101 Use of `assert` detected
+  --> e2e_full.py:93:9
+   |
+91 |         s0 = next(w for w in wl2 if w["stock_code"] == results[0]["stock_code"])
+92 |         print(f"  mark_analyzed: count={s0['analysis_count']} date={s0['last_analysis_date']}")
+93 |         assert s0["analysis_count"] == 1
+   |         ^^^^^^
+94 |
+95 |     # normalize
+   |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:100:5
+    |
+ 98 |         "pe_ratio": 30.0, "pb_ratio": 10.0,
+ 99 |     })
+100 |     assert norm["stock_code"] == "600519"
+    |     ^^^^^^
+101 |     assert norm["is_st"] is False
+102 |     print("  normalize: OK")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:101:5
+    |
+ 99 |     })
+100 |     assert norm["stock_code"] == "600519"
+101 |     assert norm["is_st"] is False
+    |     ^^^^^^
+102 |     print("  normalize: OK")
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+   --> e2e_full.py:110:5
+    |
+109 |   def test_paper_portfolio():
+110 | /     from services.paper_portfolio import PaperPortfolio
+111 | |     import sqlite3
+    | |__________________^
+112 |
+113 |       p = PaperPortfolio()
+    |
+help: Organize imports
+
+S101 Use of `assert` detected
+   --> e2e_full.py:124:5
+    |
+122 |     # 1. 买入
+123 |     r = p.buy("600519", "maotai", 300.0, 200, "buy test")
+124 |     assert r["ok"], f"buy failed: {r}"
+    |     ^^^^^^
+125 |     print(f"  buy: 200@300 cost={RMB}{r['total_cost']:.2f}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:129:5
+    |
+127 |     # 2. 加仓
+128 |     r = p.add("600519", "maotai", 310.0, 100, "add test")
+129 |     assert r["ok"]
+    |     ^^^^^^
+130 |     print(f"  add: +100@310 avg={r['new_avg_cost']} total={r['total_shares']}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:134:5
+    |
+132 |     # 3. T+1 拦截
+133 |     r = p.reduce("600519", 310.0, 100, "same day")
+134 |     assert not r["ok"]
+    |     ^^^^^^
+135 |     print(f"  T+1 block: {r['error']}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:140:5
+    |
+138 |     p.update_prices()
+139 |     r = p.reduce("600519", 310.0, 100, "next day reduce")
+140 |     assert r["ok"]
+    |     ^^^^^^
+141 |     print(f"  reduce: 100@310 remaining={r['remaining_shares']} profit={RMB}{r['profit']:.2f}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:147:5
+    |
+145 |     print(f"  account: total={RMB}{acct['total_assets']:.0f} "
+146 |           f"cash={RMB}{acct['cash']:.0f} pnl={RMB}{acct['pnl']:.0f} ({acct['pnl_pct']:+.1f}%)")
+147 |     assert acct["holding_count"] == 1
+    |     ^^^^^^
+148 |
+149 |     # 6. 交易历史
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:152:5
+    |
+150 |     trades = p.get_trade_history()
+151 |     print(f"  trades: {len(trades)} records")
+152 |     assert len(trades) == 3  # buy + add + reduce
+    |     ^^^^^^
+153 |
+154 |     # 7. 清仓
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:156:5
+    |
+154 |     # 7. 清仓
+155 |     r = p.clear("600519", 320.0, "clear all")
+156 |     assert r["ok"]
+    |     ^^^^^^
+157 |     print(f"  clear: remaining={r['remaining_shares']}")
+158 |     assert p.get_holdings() == []
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:158:5
+    |
+156 |     assert r["ok"]
+157 |     print(f"  clear: remaining={r['remaining_shares']}")
+158 |     assert p.get_holdings() == []
+    |     ^^^^^^
+159 |
+160 |     # 8. 手续费验证
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:173:5
+    |
+171 |     row = conn.execute("SELECT commission FROM paper_trades WHERE action='BUY'").fetchone()
+172 |     conn.close()
+173 |     assert row[0] == 12.5
+    |     ^^^^^^
+174 |     print(f"  commission (big): {RMB}12.50")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:186:5
+    |
+184 |     row = conn.execute("SELECT commission FROM paper_trades WHERE action='BUY'").fetchone()
+185 |     conn.close()
+186 |     assert row[0] == 5.0
+    |     ^^^^^^
+187 |     print(f"  commission (min): {RMB}5.00")
+    |
+
+ERA001 Found commented-out code
+   --> e2e_full.py:200:9
+    |
+199 |     cases = [
+200 |         # (action, confidence, holding, market, holding_count, expected)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+201 |         ("Buy", 85, None, "NEUTRAL", 0, "INITIAL_BUY"),
+202 |         ("Buy", 50, None, "NEUTRAL", 0, "WATCH"),
+    |
+help: Remove commented-out code
+
+E501 Line too long (101 > 100)
+   --> e2e_full.py:207:101
+    |
+205 |         ("Sell", 75, {"shares": 300, "market_value": 15000, "avg_cost": 50}, "NEUTRAL", 1, "CLEAR"),
+206 |         ("Hold", 60, {"shares": 300, "market_value": 15000, "avg_cost": 50}, "NEUTRAL", 1, "HOLD"),
+207 |         ("Hold", 30, {"shares": 600, "market_value": 30000, "avg_cost": 50}, "NEUTRAL", 1, "REDUCE"),
+    |                                                                                                     ^
+208 |     ]
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:220:9
+    |
+218 |         print(f"  {action:>4} conf={conf:>2} holding={'Y' if holding else 'N'} "
+219 |               f"market={market:>7} -> {d.action:<12} (expect {expected}) [{status}]")
+220 |         assert d.action == expected, f"{status}: got {d.action}, expected {expected}"
+    |         ^^^^^^
+221 |
+222 |     # PANIC
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:228:5
+    |
+226 |         None, account, "PANIC", 0,
+227 |     )
+228 |     assert d.target_shares == 0
+    |     ^^^^^^
+229 |     print(f"  PANIC -> shares=0 OK")
+    |
+
+F541 [*] f-string without any placeholders
+   --> e2e_full.py:229:11
+    |
+227 |     )
+228 |     assert d.target_shares == 0
+229 |     print(f"  PANIC -> shares=0 OK")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+230 |
+231 |     # 100 lot
+    |
+help: Remove extraneous `f` prefix
+
+S101 Use of `assert` detected
+   --> e2e_full.py:237:5
+    |
+235 |         None, account, "NEUTRAL", 0,
+236 |     )
+237 |     assert d.target_shares % 100 == 0
+    |     ^^^^^^
+238 |     print(f"  100lot: shares={d.target_shares} pct={d.position_pct}% OK")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:265:5
+    |
+263 |     # hard_filter
+264 |     filtered = [s for s in stocks if hard_filter(s)]
+265 |     assert len(filtered) == 2  # ST filtered out
+    |     ^^^^^^
+266 |     print(f"  hard_filter: {len(stocks)} -> {len(filtered)} (ST removed)")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:277:5
+    |
+275 |     ranked = rank_stocks(stocks, top_n=5, style="value")
+276 |     print(f"  rank (value): {len(ranked)} stocks")
+277 |     assert len(ranked) == 2
+    |     ^^^^^^
+278 |     assert ranked[0]["score"] >= ranked[1]["score"]
+279 |     print(f"  top: {ranked[0]['stock_code']} score={ranked[0]['score']:.1f}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:278:5
+    |
+276 |     print(f"  rank (value): {len(ranked)} stocks")
+277 |     assert len(ranked) == 2
+278 |     assert ranked[0]["score"] >= ranked[1]["score"]
+    |     ^^^^^^
+279 |     print(f"  top: {ranked[0]['stock_code']} score={ranked[0]['score']:.1f}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:304:5
+    |
+302 |         print(f"    {code}: {status} (days={days})")
+303 |
+304 |     assert result["total"] > 0
+    |     ^^^^^^
+305 |     assert result["skipped"] + result["updated"] + result["failed"] == result["total"]
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:305:5
+    |
+304 |     assert result["total"] > 0
+305 |     assert result["skipped"] + result["updated"] + result["failed"] == result["total"]
+    |     ^^^^^^
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:331:5
+    |
+329 |     # 验证保存
+330 |     loaded = gen.get_today_plan()
+331 |     assert loaded is not None, "plan should be saved"
+    |     ^^^^^^
+332 |     print(f"  saved to DB: YES (date={loaded.get('date')})")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:345:9
+    |
+343 |     if md_files:
+344 |         content = md_files[0].read_text(encoding="utf-8")
+345 |         assert "每日交易计划" in content
+    |         ^^^^^^
+346 |         print(f"  markdown: {md_files[0].name} ({len(content)} chars)")
+347 |     else:
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+   --> e2e_full.py:363:5
+    |
+362 |   def test_api():
+363 | /     from fastapi.testclient import TestClient
+364 | |     from server import app
+    | |__________________________^
+365 |       client = TestClient(app)
+    |
+help: Organize imports
+
+S101 Use of `assert` detected
+   --> e2e_full.py:380:5
+    |
+378 |     # health
+379 |     d = check("GET", "/api/health")
+380 |     assert d.get("status") == "ok"
+    |     ^^^^^^
+381 |
+382 |     # data: kline
+    |
+
+ERA001 Found commented-out code
+   --> e2e_full.py:382:5
+    |
+380 |     assert d.get("status") == "ok"
+381 |
+382 |     # data: kline
+    |     ^^^^^^^^^^^^^
+383 |     d = check("GET", "/api/data/kline?code=600519&days=30")
+384 |     print(f"  kline: {d.get('total', 0)} bars")
+    |
+help: Remove commented-out code
+
+ERA001 Found commented-out code
+   --> e2e_full.py:386:5
+    |
+384 |     print(f"  kline: {d.get('total', 0)} bars")
+385 |
+386 |     # data: stats
+    |     ^^^^^^^^^^^^^
+387 |     d = check("GET", "/api/data/stats")
+388 |     print(f"  stats: kline={d.get('kline_count',0)} stocks={d.get('stock_count',0)} "
+    |
+help: Remove commented-out code
+
+ERA001 Found commented-out code
+   --> e2e_full.py:391:5
+    |
+389 |           f"db={d.get('db_size','')}")
+390 |
+391 |     # data: health
+    |     ^^^^^^^^^^^^^^
+392 |     d = check("GET", "/api/data/health")
+393 |     print(f"  data_health: {d.get('status')} - {d.get('message','')}")
+    |
+help: Remove commented-out code
+
+ERA001 Found commented-out code
+   --> e2e_full.py:395:5
+    |
+393 |     print(f"  data_health: {d.get('status')} - {d.get('message','')}")
+394 |
+395 |     # data: incremental-refresh
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+396 |     d = check("POST", "/api/data/incremental-refresh?days=60")
+397 |     s = d.get("stats", {})
+    |
+help: Remove commented-out code
+
+S101 Use of `assert` detected
+   --> e2e_full.py:403:5
+    |
+401 |     # trading-plan: portfolio
+402 |     d = check("GET", "/api/trading-plan/portfolio")
+403 |     assert d.get("ok") is True
+    |     ^^^^^^
+404 |     acct = d.get("account", {})
+405 |     print(f"  portfolio: total={RMB}{acct.get('total_assets',0):.0f} "
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:410:5
+    |
+408 |     # trading-plan: watchlist
+409 |     d = check("GET", "/api/trading-plan/watchlist")
+410 |     assert d.get("ok") is True
+    |     ^^^^^^
+411 |     print(f"  watchlist: {d.get('total',0)} stocks")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:415:5
+    |
+413 |     # trading-plan: trades
+414 |     d = check("GET", "/api/trading-plan/trades")
+415 |     assert d.get("ok") is True
+    |     ^^^^^^
+416 |     print(f"  trades: {d.get('total',0)} records")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:428:5
+    |
+426 |     # trading-plan: history
+427 |     d = check("GET", "/api/trading-plan/history")
+428 |     assert d.get("ok") is True
+    |     ^^^^^^
+429 |     print(f"  history: {d.get('total',0)} plans")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:433:5
+    |
+431 |     # backtest: strategies (returns strategies list, no 'ok' field)
+432 |     d = check("GET", "/api/backtest/strategies")
+433 |     assert "strategies" in d
+    |     ^^^^^^
+434 |     print(f"  strategies: {[s.get('name') for s in d.get('strategies', [])]}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:438:5
+    |
+436 |     # backtest: validation (empty codes) - should be rejected (400)
+437 |     r = client.post("/api/backtest", json={"stock_codes": [], "strategy": "ma_cross", "days": 30})
+438 |     assert r.status_code == 400
+    |     ^^^^^^
+439 |     print(f"  backtest (empty): rejected with 400 OK")
+    |
+
+F541 [*] f-string without any placeholders
+   --> e2e_full.py:439:11
+    |
+437 |     r = client.post("/api/backtest", json={"stock_codes": [], "strategy": "ma_cross", "days": 30})
+438 |     assert r.status_code == 400
+439 |     print(f"  backtest (empty): rejected with 400 OK")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+440 |
+441 |     # backtest: validation (too many) - should be rejected (400)
+    |
+help: Remove extraneous `f` prefix
+
+S101 Use of `assert` detected
+   --> e2e_full.py:446:5
+    |
+444 |         "strategy": "ma_cross", "days": 30,
+445 |     })
+446 |     assert r.status_code == 400
+    |     ^^^^^^
+447 |     print(f"  backtest (>10): rejected with 400 OK")
+    |
+
+F541 [*] f-string without any placeholders
+   --> e2e_full.py:447:11
+    |
+445 |     })
+446 |     assert r.status_code == 400
+447 |     print(f"  backtest (>10): rejected with 400 OK")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+448 |
+449 |     # screening: rank (may fail if no data in DB)
+    |
+help: Remove extraneous `f` prefix
+
+S101 Use of `assert` detected
+   --> e2e_full.py:460:5
+    |
+458 |     total = len(results)
+459 |     print(f"\n  API summary: {passed}/{total} endpoints OK")
+460 |     assert passed >= total - 1  # allow 1 failure (screening may have no data)
+    |     ^^^^^^
+    |
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> e2e_full.py:472:14
+    |
+471 |     # plan --show
+472 |     result = subprocess.run(
+    |              ^^^^^^^^^^^^^^
+473 |         [sys.executable, "main.py", "plan", "--show"],
+474 |         capture_output=True, text=True, encoding="utf-8", errors="replace",
+    |
+help: Add explicit `check=False`
+
+E741 Ambiguous variable name: `l`
+   --> e2e_full.py:479:20
+    |
+477 |     output = (result.stdout or "") + (result.stderr or "")
+478 |     safe = output.replace("\u00a5", "RMB")
+479 |     lines = [l for l in safe.strip().split("\n") if l.strip()]
+    |                    ^
+480 |     for line in lines[:15]:
+481 |         print(f"  {line}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:484:5
+    |
+482 |     if len(lines) > 15:
+483 |         print(f"  ... ({len(lines)} lines total)")
+484 |     assert "每日交易计划" in safe or "尚未生成" in safe
+    |     ^^^^^^
+485 |     assert result.returncode == 0
+486 |     print(f"  exit code: 0 OK")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:485:5
+    |
+483 |         print(f"  ... ({len(lines)} lines total)")
+484 |     assert "每日交易计划" in safe or "尚未生成" in safe
+485 |     assert result.returncode == 0
+    |     ^^^^^^
+486 |     print(f"  exit code: 0 OK")
+    |
+
+F541 [*] f-string without any placeholders
+   --> e2e_full.py:486:11
+    |
+484 |     assert "每日交易计划" in safe or "尚未生成" in safe
+485 |     assert result.returncode == 0
+486 |     print(f"  exit code: 0 OK")
+    |           ^^^^^^^^^^^^^^^^^^^^
+487 |
+488 |     # screen (may fail due to network, check no crash)
+    |
+help: Remove extraneous `f` prefix
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> e2e_full.py:489:15
+    |
+488 |     # screen (may fail due to network, check no crash)
+489 |     result2 = subprocess.run(
+    |               ^^^^^^^^^^^^^^
+490 |         [sys.executable, "main.py", "screen", "--limit", "5"],
+491 |         capture_output=True, text=True, encoding="utf-8", errors="replace",
+    |
+help: Add explicit `check=False`
+
+F841 Local variable `out2` is assigned to but never used
+   --> e2e_full.py:494:5
+    |
+492 |         env=env, timeout=60,
+493 |     )
+494 |     out2 = (result2.stdout or "") + (result2.stderr or "")
+    |     ^^^^
+495 |     # screen may exit 0 even with no data; just verify it doesn't crash
+496 |     print(f"  screen: exit={result2.returncode} OK")
+    |
+help: Remove assignment to unused variable `out2`
+
+ERA001 Found commented-out code
+   --> e2e_full.py:498:5
+    |
+496 |     print(f"  screen: exit={result2.returncode} OK")
+497 |
+498 |     # backtest (validation)
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+499 |     result3 = subprocess.run(
+500 |         [sys.executable, "main.py", "backtest", ""],
+    |
+help: Remove commented-out code
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> e2e_full.py:499:15
+    |
+498 |     # backtest (validation)
+499 |     result3 = subprocess.run(
+    |               ^^^^^^^^^^^^^^
+500 |         [sys.executable, "main.py", "backtest", ""],
+501 |         capture_output=True, text=True, encoding="utf-8", errors="replace",
+    |
+help: Add explicit `check=False`
+
+F841 Local variable `out3` is assigned to but never used
+   --> e2e_full.py:504:5
+    |
+502 |         env=env,
+503 |     )
+504 |     out3 = (result3.stdout or "") + (result3.stderr or "")
+    |     ^^^^
+505 |     assert result3.returncode == 0
+506 |     print(f"  backtest (no codes): exit=0 OK")
+    |
+help: Remove assignment to unused variable `out3`
+
+S101 Use of `assert` detected
+   --> e2e_full.py:505:5
+    |
+503 |     )
+504 |     out3 = (result3.stdout or "") + (result3.stderr or "")
+505 |     assert result3.returncode == 0
+    |     ^^^^^^
+506 |     print(f"  backtest (no codes): exit=0 OK")
+    |
+
+F541 [*] f-string without any placeholders
+   --> e2e_full.py:506:11
+    |
+504 |     out3 = (result3.stdout or "") + (result3.stderr or "")
+505 |     assert result3.returncode == 0
+506 |     print(f"  backtest (no codes): exit=0 OK")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+507 |
+508 |     # help
+    |
+help: Remove extraneous `f` prefix
+
+PLW1510 `subprocess.run` without explicit `check` argument
+   --> e2e_full.py:509:15
+    |
+508 |     # help
+509 |     result4 = subprocess.run(
+    |               ^^^^^^^^^^^^^^
+510 |         [sys.executable, "main.py", "--help"],
+511 |         capture_output=True, text=True, encoding="utf-8", errors="replace",
+    |
+help: Add explicit `check=False`
+
+S101 Use of `assert` detected
+   --> e2e_full.py:515:5
+    |
+513 |     )
+514 |     out4 = (result4.stdout or "") + (result4.stderr or "")
+515 |     assert "plan" in out4 and "analyze" in out4 and "serve" in out4
+    |     ^^^^^^
+516 |     print(f"  help: all commands listed OK")
+    |
+
+F541 [*] f-string without any placeholders
+   --> e2e_full.py:516:11
+    |
+514 |     out4 = (result4.stdout or "") + (result4.stderr or "")
+515 |     assert "plan" in out4 and "analyze" in out4 and "serve" in out4
+516 |     print(f"  help: all commands listed OK")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Remove extraneous `f` prefix
+
+S101 Use of `assert` detected
+   --> e2e_full.py:528:5
+    |
+527 |     # portfolio config
+528 |     assert c.get("portfolio.initial_capital") == 100000
+    |     ^^^^^^
+529 |     assert c.get("portfolio.max_holdings") == 5
+530 |     assert c.get("portfolio.max_single_pct") == 0.30
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:529:5
+    |
+527 |     # portfolio config
+528 |     assert c.get("portfolio.initial_capital") == 100000
+529 |     assert c.get("portfolio.max_holdings") == 5
+    |     ^^^^^^
+530 |     assert c.get("portfolio.max_single_pct") == 0.30
+531 |     assert c.get("portfolio.lot_size") == 100
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:530:5
+    |
+528 |     assert c.get("portfolio.initial_capital") == 100000
+529 |     assert c.get("portfolio.max_holdings") == 5
+530 |     assert c.get("portfolio.max_single_pct") == 0.30
+    |     ^^^^^^
+531 |     assert c.get("portfolio.lot_size") == 100
+532 |     assert c.get("portfolio.commission_rate") == 0.00025
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:531:5
+    |
+529 |     assert c.get("portfolio.max_holdings") == 5
+530 |     assert c.get("portfolio.max_single_pct") == 0.30
+531 |     assert c.get("portfolio.lot_size") == 100
+    |     ^^^^^^
+532 |     assert c.get("portfolio.commission_rate") == 0.00025
+533 |     assert c.get("portfolio.min_commission") == 5
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:532:5
+    |
+530 |     assert c.get("portfolio.max_single_pct") == 0.30
+531 |     assert c.get("portfolio.lot_size") == 100
+532 |     assert c.get("portfolio.commission_rate") == 0.00025
+    |     ^^^^^^
+533 |     assert c.get("portfolio.min_commission") == 5
+534 |     assert c.get("portfolio.stamp_tax_rate") == 0.001
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:533:5
+    |
+531 |     assert c.get("portfolio.lot_size") == 100
+532 |     assert c.get("portfolio.commission_rate") == 0.00025
+533 |     assert c.get("portfolio.min_commission") == 5
+    |     ^^^^^^
+534 |     assert c.get("portfolio.stamp_tax_rate") == 0.001
+535 |     print(f"  portfolio: capital={c.get('portfolio.initial_capital')} "
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:534:5
+    |
+532 |     assert c.get("portfolio.commission_rate") == 0.00025
+533 |     assert c.get("portfolio.min_commission") == 5
+534 |     assert c.get("portfolio.stamp_tax_rate") == 0.001
+    |     ^^^^^^
+535 |     print(f"  portfolio: capital={c.get('portfolio.initial_capital')} "
+536 |           f"max_holdings={c.get('portfolio.max_holdings')} "
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:540:5
+    |
+539 |     # trading_plan config
+540 |     assert c.get("trading_plan.daily_analysis_batch") == 30
+    |     ^^^^^^
+541 |     assert c.get("trading_plan.watchlist_size") == 30
+542 |     assert c.get("trading_plan.scan_top_n") == 50
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:541:5
+    |
+539 |     # trading_plan config
+540 |     assert c.get("trading_plan.daily_analysis_batch") == 30
+541 |     assert c.get("trading_plan.watchlist_size") == 30
+    |     ^^^^^^
+542 |     assert c.get("trading_plan.scan_top_n") == 50
+543 |     print(f"  trading_plan: batch={c.get('trading_plan.daily_analysis_batch')} "
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:542:5
+    |
+540 |     assert c.get("trading_plan.daily_analysis_batch") == 30
+541 |     assert c.get("trading_plan.watchlist_size") == 30
+542 |     assert c.get("trading_plan.scan_top_n") == 50
+    |     ^^^^^^
+543 |     print(f"  trading_plan: batch={c.get('trading_plan.daily_analysis_batch')} "
+544 |           f"watchlist={c.get('trading_plan.watchlist_size')} "
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:548:5
+    |
+547 |     # llm budget
+548 |     assert c.get("llm.monthly_budget_rmb") == 1000
+    |     ^^^^^^
+549 |     print(f"  llm: budget={c.get('llm.monthly_budget_rmb')} "
+550 |           f"model={c.get('llm.quick_think.model')}")
+    |
+
+S101 Use of `assert` detected
+   --> e2e_full.py:553:5
+    |
+552 |     # runtime
+553 |     assert c.get("runtime.db_path") == "runtime/investment.db"
+    |     ^^^^^^
+554 |     print(f"  runtime: db={c.get('runtime.db_path')}")
+    |
+
+F541 [*] f-string without any placeholders
+   --> main.py:240:15
+    |
+238 |     account = plan.get("account", {})
+239 |     if account:
+240 |         print(f"\n💰 账户概览:")
+    |               ^^^^^^^^^^^^^^^^^
+241 |         print(f"   总资产: ¥{account.get('total_assets', 0):,.2f}")
+242 |         print(f"   现金: ¥{account.get('cash', 0):,.2f}")
+    |
+help: Remove extraneous `f` prefix
+
+S324 Probable use of insecure hash functions in `hashlib`: `md5`
+  --> memory\vectorstore.py:83:18
+   |
+81 |         import hashlib
+82 |
+83 |         doc_id = hashlib.md5(
+   |                  ^^^^^^^^^^^
+84 |             f"{ticker}_{report_type}_{date}_{report_text[:100]}".encode()
+85 |         ).hexdigest()[:16]
+   |
+
+S324 Probable use of insecure hash functions in `hashlib`: `md5`
+   --> memory\vectorstore.py:98:18
+    |
+ 96 |         import hashlib
+ 97 |
+ 98 |         doc_id = hashlib.md5(
+    |                  ^^^^^^^^^^^
+ 99 |             f"news_{ticker}_{date}_{title}".encode()
+100 |         ).hexdigest()[:16]
+    |
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> memory\vectorstore.py:158:40
+    |
+156 |                     "distance": dist,
+157 |                 }
+158 |                 for doc, meta, dist in zip(documents, metadatas, distances)
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+159 |             ]
+160 |         except Exception as e:
+    |
+help: Add explicit value for parameter `strict=`
+
+PLR1714 Consider merging multiple comparisons: `value in {"", "-"}`.
+  --> providers\data_bus.py:38:8
+   |
+36 | def _safe_float(value) -> float | None:
+37 |     """安全转换为float，处理'-'、None、空字符串等。"""
+38 |     if value is None or value == "" or value == "-":
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+39 |         return None
+40 |     try:
+   |
+help: Merge multiple comparisons
+
+E501 Line too long (121 > 100)
+   --> providers\data_bus.py:546:94
+    |
+544 | …                     elif "归母净利润" in metric_name and not result.get("net_income"):
+545 | …                         result["net_income"] = val
+546 | …                     elif "营业总收入" in metric_name and "增长" not in metric_name and not result.get("revenue"):
+    |                                                                                               ^^^^^^^^^^^^^^^^^^^^^
+547 | …                         result["revenue"] = val
+548 | …                     elif "营业总收入" in metric_name and "增长" in metric_name and not result.get("revenue_yoy"):
+    |
+
+E501 Line too long (121 > 100)
+   --> providers\data_bus.py:548:94
+    |
+546 | …                     elif "营业总收入" in metric_name and "增长" not in metric_name and not result.get("revenue"):
+547 | …                         result["revenue"] = val
+548 | …                     elif "营业总收入" in metric_name and "增长" in metric_name and not result.get("revenue_yoy"):
+    |                                                                                               ^^^^^^^^^^^^^^^^^^^^^
+549 | …                         result["revenue_yoy"] = val
+550 | …                     elif "增长" in metric_name and "营业总收入" not in metric_name and not result.get("net_income_yoy"):
+    |
+
+E501 Line too long (128 > 100)
+   --> providers\data_bus.py:550:94
+    |
+548 | …         elif "营业总收入" in metric_name and "增长" in metric_name and not result.get("revenue_yoy"):
+549 | …             result["revenue_yoy"] = val
+550 | …         elif "增长" in metric_name and "营业总收入" not in metric_name and not result.get("net_income_yoy"):
+    |                                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+551 | …             result["net_income_yoy"] = val
+552 | …     result["report_period"] = latest_col
+    |
+
+SIM105 Use `contextlib.suppress(Exception)` instead of `try`-`except`-`pass`
+   --> providers\data_bus.py:816:13
+    |
+814 |           conn = sqlite3.connect(self.db_path)
+815 |           for n in news_list:
+816 | /             try:
+817 | |                 conn.execute(
+818 | |                     "INSERT OR IGNORE INTO news_cache "
+819 | |                     "(stock_code, news_date, title, content, source, url) "
+820 | |                     "VALUES (?, ?, ?, ?, ?, ?)",
+821 | |                     (
+822 | |                         code,
+823 | |                         n.get("date", ""),
+824 | |                         n.get("title", ""),
+825 | |                         n.get("content", ""),
+826 | |                         n.get("source", ""),
+827 | |                         n.get("url", ""),
+828 | |                     ),
+829 | |                 )
+830 | |             except Exception:
+831 | |                 pass
+    | |____________________^
+832 |           conn.commit()
+833 |           conn.close()
+    |
+help: Replace `try`-`except`-`pass` with `with contextlib.suppress(Exception): ...`
+
+S112 `try`-`except`-`continue` detected, consider logging the exception
+   --> providers\data_bus.py:903:25
+    |
+901 |                                   )
+902 |                                   break
+903 | /                         except Exception:
+904 | |                             continue
+    | |____________________________________^
+905 |               except Exception as e:
+906 |                   logger.debug("获取北向资金失败 %s: %s", pure, e)
+    |
+
+S112 `try`-`except`-`continue` detected, consider logging the exception
+    --> providers\data_bus.py:1154:25
+     |
+1152 |                                   ) or 0
+1153 |                                   break
+1154 | /                         except Exception:
+1155 | |                             continue
+     | |____________________________________^
+1156 |               except Exception as e:
+1157 |                   logger.debug("获取北向资金失败: %s", e)
+     |
+
+ERA001 Found commented-out code
+  --> providers\sources\tencent.py:49:17
+   |
+47 |             result: list[dict] = []
+48 |             for row in kline_list:
+49 |                 # 格式: ["2024-01-02", "open", "close", "high", "low", "volume"]
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+50 |                 if len(row) < 6:
+51 |                     continue
+   |
+help: Remove commented-out code
+
+E501 Line too long (102 > 100)
+   --> services\backtest.py:149:101
+    |
+147 |                     "max_drawdown": f"{pf.max_drawdown() * 100:.2f}%",
+148 |                     "total_trades": int(pf.trades.count),
+149 |                     "win_rate": f"{pf.trades.win_rate() * 100:.1f}%" if len(pf.trades) > 0 else "N/A",
+    |                                                                                                     ^^
+150 |                 }
+    |
+
+ERA001 Found commented-out code
+   --> services\backtest.py:219:17
+    |
+218 |             else:
+219 |                 # 默认: MA交叉
+    |                 ^^^^^^^^^^^^^^
+220 |                 fast = vbt.MA.run(close, window=5)
+221 |                 slow = vbt.MA.run(close, window=20)
+    |
+help: Remove commented-out code
+
+E501 Line too long (108 > 100)
+   --> services\backtest.py:275:101
+    |
+273 |         return {"total_return": "0.00%", "error": "无股票数据"}
+274 |
+275 |     codes = [s.get("code", s.get("stock_code", "")) for s in stocks if s.get("code") or s.get("stock_code")]
+    |                                                                                                     ^^^^^^^^
+276 |     codes = [c for c in codes if c]
+    |
+
+ERA001 Found commented-out code
+   --> services\backtest.py:279:9
+    |
+278 |     if not codes:
+279 |         # 降级: 用传入的price做简单计算
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+280 |         broker = AShareBroker(initial_capital=initial_capital)
+281 |         first = stocks[0]
+    |
+help: Remove commented-out code
+
+F401 [*] `json` imported but unused
+ --> tests\unit\test_phase9.py:5:8
+  |
+3 | from __future__ import annotations
+4 |
+5 | import json
+  |        ^^^^
+6 | from unittest.mock import MagicMock, patch
+  |
+help: Remove unused import: `json`
+
+SIM105 Use `contextlib.suppress(SystemExit)` instead of `try`-`except`-`pass`
+   --> tests\unit\test_phase9.py:157:13
+    |
+156 |           with patch("sys.argv", ["main"]):
+157 | /             try:
+158 | |                 main()
+159 | |             except SystemExit:
+160 | |                 pass
+    | |____________________^
+161 |
+162 |       def test_cli_screen_no_data(self):
+    |
+help: Replace `try`-`except`-`pass` with `with contextlib.suppress(SystemExit): ...`
+
+Found 101 errors.
+[*] 12 fixable with the `--fix` option (10 hidden fixes can be enabled with the `--unsafe-fixes` option).

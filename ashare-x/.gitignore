@@ -1,0 +1,43 @@
+# ── 密钥与本地配置 (永不提交) ──
+.env
+.env.local
+config.json
+config/config.local.yaml
+
+# ── 运行时数据 ──
+runtime/
+logs/
+reports/
+*.db
+*.db-journal
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── 虚拟环境 ──
+.venv/
+venv/
+env/
+
+# ── 前端 (electron) ──
+node_modules/
+electron/release/
+electron/dist-frontend/
+frontend/dist/
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+.DS_Store

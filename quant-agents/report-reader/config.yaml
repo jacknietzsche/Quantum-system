@@ -1,0 +1,13 @@
+# 默认配置
+
+# 输出目录（Markdown 报告和信息图 PNG）
+output_dir: "~/Downloads/"
+
+# 信息图默认色调（可选：沉思/锐利/温暖/技术/科研/创意/商业/默认）
+default_tone: "商业"
+
+# 信息图默认密度（可选：稀/中/密）
+default_density: "中"
+
+# 信息图宽度（px）
+infograph_width: 1080

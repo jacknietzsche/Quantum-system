@@ -1,0 +1,16 @@
+﻿__pycache__
+*.pyc
+.git
+.venv
+venv
+node_modules
+.pytest_cache
+.ruff_cache
+*.db
+logs/*
+reports/*
+backups/*
+static/*
+frontend/dist
+.omc
+*.egg-info

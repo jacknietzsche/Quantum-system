@@ -1,0 +1,40 @@
+﻿version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: ashare-x
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./config:/app/config
+    env_file:
+      - config/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/system/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  dev:
+    build: .
+    container_name: ashare-x-dev
+    ports:
+      - "8765:8765"
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - config/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python launch.py --dev
+    profiles:
+      - dev

@@ -1,0 +1,35 @@
+﻿{
+  "name": "no-loss-trading",
+  "version": "1.0",
+  "description": "不亏钱交易法 — 极度保守型价值投资",
+  "category": "value",
+  "selection": {
+    "min_roe": 15,
+    "max_pe": 15,
+    "max_pb": 2.0,
+    "min_market_cap": 100,
+    "custom_filters": [
+      {"field": "debt_to_equity", "operator": "<", "value": 50},
+      {"field": "dividend_yield", "operator": ">", "value": 2.0},
+      {"field": "current_ratio", "operator": ">", "value": 1.5}
+    ]
+  },
+  "scoring": {
+    "weights": {
+      "roe": 0.25,
+      "dividend_yield": 0.25,
+      "debt_to_equity": 0.20,
+      "current_ratio": 0.15,
+      "pe_ratio": 0.15
+    },
+    "base_score": 35,
+    "max_score": 100
+  },
+  "risk": {
+    "stop_loss_pct": -10,
+    "take_profit_pct": 20,
+    "max_position_pct": 20,
+    "max_holdings": 10,
+    "trailing_stop": false
+  }
+}
