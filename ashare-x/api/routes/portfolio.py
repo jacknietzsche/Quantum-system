@@ -73,10 +73,10 @@ async def get_portfolio():
 async def rebalance():
     """再平衡建议。"""
     try:
-        from services.market_perception import get_market_state, get_position_cap
+        from services.market_perception import _adaptive_params, get_market_state
 
         state = get_market_state()
-        cap = get_position_cap()
+        cap = _adaptive_params(state).get("target_position_pct", 0.5)
 
         return {
             "market_state": state,

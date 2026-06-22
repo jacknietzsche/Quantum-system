@@ -16,7 +16,7 @@ python launch.py --check
 cd a-share-investment-system/electron && npm run dev
 
 # Lint / Typecheck / Test
-cd a-share-investment-system
+cd ashare-x
 ruff check .                # lint
 mypy .                     # typecheck
 pytest tests/ -v            # all tests
@@ -27,28 +27,26 @@ pytest tests/unit/ -v       # unit tests only
 
 ```
 Trading agent and skill/
-├── a-share-investment-system/   ← Main app (Python + React)
-│   ├── server.py                ← FastAPI entry, mounts all API routes
-│   ├── launch.py                ← Launcher: auto-setup, git pull, build, start
-│   ├── main.py                  ← CLI entry: analyze/daily/screen/serve/schedule/backtest
-│   ├── models.py                ← SQLAlchemy ORM (SQLite)
-│   ├── workflow.py              ← LangGraph workflow (basic)
-│   ├── super_workflow.py        ← LangGraph super-workflow (full fusion)
-│   ├── skills.py                ← SkillRegistry + RiskFirewall base classes
-│   ├── multi_model_voter.py     ← Multi-model voting
-│   ├── advanced_tools.py        ← Look-ahead bias audit, strategy monitor
-│   ├── optimizations.py         ← Fault-tolerant nodes, risk quadrant, stress test
-│   ├── api/routes/              ← FastAPI routers (portfolio, risk, signals, screening, etc.)
-│   ├── services/                ← Domain logic (29 modules)
-│   ├── providers/               ← Data providers (market_data, llm, cache, email)
-│   ├── electron/                ← React/Vite/Tailwind frontend
-│   ├── static/                  ← Built frontend output (served by FastAPI)
-│   ├── config.json              ← Runtime config (API keys, risk params) — gitignored
-│   ├── config/                  ← .env, config.yaml, compat layer
-│   ├── data/                    ← SQLite DBs (investment.db, factors.db)
-│   ├── tests/                   ← pytest suite (unit/, integration/, backtest/)
-│   └── strategies/              ← YAML strategy definitions
-└── quant-agents/                ← 12+ external quant AI projects (skill sources)
+├── ashare-x/                  ← Main app (Python + FastAPI + React)
+│   ├── server.py              ← FastAPI entry, mounts all API routes
+│   ├── launch.py              ← Launcher: auto-setup, git pull, build, start
+│   ├── main.py                ← CLI entry: analyze/daily/screen/serve/schedule/backtest
+│   ├── graph/                 ← LangGraph trading_graph + conditional logic
+│   ├── agents/                ← analyst / researcher / trader / risk / master agents
+│   ├── services/              ← screening, portfolio, risk, factor_farm, market_perception, quant_analyzers
+│   ├── skills/                ← 19 SKILL.md (auto-discovered by SkillEngine)
+│   ├── api/routes/            ← FastAPI routers (analysis, backtest, data, portfolio, reports, screening, settings, trading_plan)
+│   ├── providers/             ← Data providers (akshare, sina, tencent, yfinance)
+│   ├── db/                    ← SQLAlchemy ORM (SQLite)
+│   ├── tools/                 ← Stock data, technical indicators, news search
+│   ├── memory/                ← Decision log, layered memory, vector store
+│   ├── electron/              ← React/Vite/Tailwind frontend
+│   ├── static/                ← Built frontend output
+│   ├── config/                ← .env, config.yaml, user_config.yaml
+│   ├── data/                  ← SQLite DBs
+│   ├── tests/                 ← pytest suite (unit/, integration/)
+│   └── strategies/            ← YAML strategy definitions
+└── quant-agents/              ← External quant AI projects (skill sources)
     ├── a-share-skill/           ← 6 A-share trading skills
     ├── buffett-skills/          ← Buffett investment framework (8 refs)
     ├── munger-skill/            ← Munger mental models
@@ -77,13 +75,9 @@ Trading agent and skill/
 
 ## Gotchas
 
-- `config.json` contains API keys — never commit it. `config.json.backup` is also a config file (not a code backup).
-- `start_dev.cmd` references Vue3/v4.0.0 — stale. Use `launch.py` instead.
-- `super_workflow.py` is 2355 lines — the full fusion pipeline. `workflow.py` is the simpler LangGraph version.
-- `skills.py` at root is the skill registry/base classes. `services/skill_engine.py` is the engine that loads SKILL.md files. Different modules.
-- `decision_review.py` is imported by `workflow.py` and `super_workflow.py` — not redundant.
-- `openclaw-skill/` contains runner scripts for the super workflow.
-- Coverage threshold is 50% (`--cov-fail-under=50` in pyproject.toml).
+- `config.json` contains API keys — never commit it.
+- `launch.py` auto-finds free port 8765-8775 and starts the FastAPI + browser.
+- `pyproject.toml` has `--cov-fail-under=50` coverage gate.
 
 ## Data Sources
 

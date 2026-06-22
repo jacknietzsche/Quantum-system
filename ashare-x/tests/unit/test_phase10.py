@@ -518,6 +518,8 @@ class TestDailyPlanGenerator:
 class TestTradingPlanAPI:
     """交易计划API测试。"""
 
+    pytestmark = pytest.mark.data
+
     def test_get_portfolio(self):
         """GET /api/trading-plan/portfolio 返回持仓。"""
         from fastapi.testclient import TestClient

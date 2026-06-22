@@ -23,6 +23,8 @@ class SkillMetadata:
     agents: list[str]
     priority: int = 10
     max_tokens: int = 2000
+    category: str = "general"
+    language: str = "zh"
 
 
 @dataclass
@@ -60,7 +62,9 @@ class SkillEngine:
     def _parse_skill(self, path: Path) -> SkillContent | None:
         """解析SKILL.md文件。"""
         text = path.read_text(encoding="utf-8")
-
+        # 去除 UTF-8 BOM (PowerShell 5 Set-Content -Encoding UTF8 会写入 BOM)
+        if text.startswith("\ufeff"):
+            text = text[1:]
         if text.startswith("---"):
             parts = text.split("---", 2)
             if len(parts) >= 3:
@@ -69,7 +73,9 @@ class SkillEngine:
                     prompt = parts[2].strip()
                     metadata = SkillMetadata(**meta_dict)
                     return SkillContent(metadata=metadata, prompt=prompt)
-                except Exception:
+                except Exception as e:
+                    import sys
+                    print(f"[engine] 解析 {path} 失败: {e}", file=sys.stderr)
                     return None
         return None
 

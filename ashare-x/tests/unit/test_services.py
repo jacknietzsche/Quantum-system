@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from services.backtest import run_factor_backtest
 from services.portfolio import check_industry_constraint, compute_rebalance, optimize_positions
 from services.report import ReportGenerator

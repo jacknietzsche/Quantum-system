@@ -1,5 +1,9 @@
 # === 顶层 .gitignore ===
-# 包含: AShare-X 重写版, 遗留 a-share-investment-system, quant-agents 外部库
+# 包含: AShare-X 重写版, quant-agents 外部库
+# 注意: 遗留 a-share-investment-system 已废弃, 不再保留
+
+# === 废弃的遗留项目 ===
+a-share-investment-system/
 
 # === 工具配置 & 工作目录 ===
 .claude/
