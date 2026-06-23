@@ -78,6 +78,16 @@ trading_plan:
   scan_top_n: 50                  # 扫描返回前N名
   auto_trade: true                # 自动执行模拟交易
 
+# ── 邮件推送 (QQ 邮箱) ────────────────────────────────────────────
+# 授权码获取: QQ 邮箱网页版 → 设置 → 账户 → 开启 POP3/SMTP 服务
+email:
+  sender: ""                      # 发件邮箱, 如 123456@qq.com
+  recipient: ""                   # 收件人邮箱, 留空则发给自己
+  smtp_host: smtp.qq.com
+  smtp_port: 465
+  use_ssl: true
+  # password 建议通过 .env 的 ASHARE_X_EMAIL_PASSWORD 注入, 避免明文
+
 # ── 运行时 ────────────────────────────────────────────────────────
 runtime:
   db_path: runtime/investment.db

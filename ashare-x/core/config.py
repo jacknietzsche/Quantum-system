@@ -36,6 +36,9 @@ _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "conf
 ENV_MAP: dict[str, str] = {
     "ASHARE_X_MONTHLY_BUDGET_RMB": "llm.monthly_budget_rmb",
     "ASHARE_X_LANG": "log.lang",
+    "ASHARE_X_EMAIL_SENDER": "email.sender",
+    "ASHARE_X_EMAIL_PASSWORD": "email.password",
+    "ASHARE_X_EMAIL_RECIPIENT": "email.recipient",
     "DEEPSEEK_API_KEY": "llm.deepseek.api_key",
     "DEEPSEEK_BASE_URL": "llm.deepseek.base_url",
     "DASHSCOPE_API_KEY": "llm.dashscope.api_key",

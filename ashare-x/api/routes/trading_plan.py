@@ -29,6 +29,10 @@ class PlanJob(BaseModel):
     status: str = "running"
 
 
+class SendEmailRequest(BaseModel):
+    recipient: str | None = None
+
+
 @router.get("/today")
 async def get_today_plan():
     """获取今日交易计划。"""
@@ -146,6 +150,35 @@ async def get_plan_by_date(date: str):
         return {"ok": False, "message": f"未找到 {date} 的交易计划"}
     except Exception as e:
         logger.error("获取计划失败 %s: %s", date, e)
+        return {"ok": False, "error": str(e)}
+
+
+@router.post("/send-email")
+async def send_plan_email(req: SendEmailRequest):
+    """手动发送今日交易计划到 QQ 邮箱。"""
+    try:
+        from services.daily_plan import DailyPlanGenerator
+        from services.email_sender import EmailSender
+        from services.paper_portfolio import PaperPortfolio
+
+        gen = DailyPlanGenerator()
+        plan = gen.get_today_plan()
+        if not plan:
+            return {"ok": False, "error": "今日尚未生成交易计划, 请先运行每日分析"}
+
+        portfolio = PaperPortfolio()
+        holdings = portfolio.get_holdings()
+        trades = portfolio.get_trade_history(limit=10)
+
+        sender = EmailSender()
+        return sender.send_plan(
+            plan=plan,
+            recipient=req.recipient,
+            holdings=holdings,
+            trades=trades,
+        )
+    except Exception as e:
+        logger.error("发送交易计划邮件失败: %s", e)
         return {"ok": False, "error": str(e)}
 
 
