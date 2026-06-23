@@ -10,7 +10,7 @@ import json
 import logging
 import re
 import time
-from typing import Any
+from typing import Any, Literal, get_origin
 
 from pydantic import BaseModel
 
@@ -294,10 +294,7 @@ class LLMClient:
         for field_name, field_info in schema.model_fields.items():
             annotation = field_info.annotation
             # Literal类型
-            if (
-                hasattr(annotation, "__origin__")
-                and annotation.__origin__ is type(annotation).__origin__
-            ):
+            if get_origin(annotation) is Literal:
                 for allowed in getattr(annotation, "__args__", []):
                     if isinstance(allowed, str) and allowed.lower() in text.lower():
                         result[field_name] = allowed

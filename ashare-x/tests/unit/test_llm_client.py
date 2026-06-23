@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -221,3 +222,109 @@ class TestLLMClient:
 
         assert resp.parsed == {"action": "", "confidence": 0}
         assert resp.model == "fallback"
+
+    def test_get_client_import_error(self, llm_config: Config):
+        client = LLMClient(llm_config)
+        with (
+            patch.object(builtins, "__import__", side_effect=ImportError("no openai")),
+            pytest.raises(ImportError, match="需要安装openai"),
+        ):
+            client._get_client()
+
+    def test_get_client_caches_same_instance(self, llm_config: Config):
+        client = LLMClient(llm_config)
+        mock_openai = MagicMock()
+        mock_openai.OpenAI.return_value = MagicMock()
+
+        with patch.dict("sys.modules", {"openai": mock_openai}):
+            c1 = client._get_client("deepseek")
+            c2 = client._get_client("deepseek")
+
+        assert c1 is c2
+
+    def test_complete_budget_warning(self, llm_config: Config):
+        client = LLMClient(llm_config)
+        client.counter.daily_used = int(client.counter.daily_budget * 0.85)
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="ok"))],
+            usage=MagicMock(total_tokens=5),
+            model="deepseek-chat",
+        )
+
+        with patch.object(client, "_get_client", return_value=mock_client):
+            resp = client.complete([{"role": "user", "content": "hi"}])
+
+        assert resp.content == "ok"
+
+    def test_complete_usage_none(self, llm_config: Config):
+        client = LLMClient(llm_config)
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="ok"))],
+            usage=None,
+            model="deepseek-chat",
+        )
+
+        with patch.object(client, "_get_client", return_value=mock_client):
+            resp = client.complete([{"role": "user", "content": "hi"}])
+
+        assert resp.tokens == 0
+
+    def test_try_parse_json_invalid_returns_none(self, llm_config: Config):
+        client = LLMClient(llm_config)
+        assert client._try_parse_json("not json", _TestSchema) is None
+
+    def test_extract_from_text_literal(self, llm_config: Config):
+        from typing import Literal
+
+        class LiteralSchema(BaseModel):
+            action: Literal["BUY", "SELL"] = "BUY"
+
+        client = LLMClient(llm_config)
+        parsed = client._extract_from_text("recommend sell now", LiteralSchema)
+        assert parsed == {"action": "SELL"}
+
+    def test_create_default_list_and_literal(self, llm_config: Config):
+        from typing import Literal
+
+        class ComplexSchema(BaseModel):
+            tags: list[str]
+            action: Literal["BUY", "SELL"] = "BUY"
+            ratio: float
+
+        client = LLMClient(llm_config)
+        defaults = client._create_default(ComplexSchema)
+        assert defaults == {"tags": [], "action": "BUY", "ratio": 0.0}
+
+    def test_complete_structured_json_prompt_strategy(self, llm_config: Config):
+        client = LLMClient(llm_config)
+        # 第一次返回无效，第二次（JSON prompt）返回有效
+        responses = [
+            LLMResponse("invalid", tokens=5),
+            LLMResponse('{"action":"BUY","confidence":70}', tokens=5),
+        ]
+
+        with patch.object(client, "complete", side_effect=responses):
+            resp = client.complete_structured(
+                [{"role": "user", "content": "hi"}], _TestSchema
+            )
+
+        assert resp.parsed == {"action": "BUY", "confidence": 70}
+
+    def test_complete_structured_regex_extract_strategy(self, llm_config: Config):
+        client = LLMClient(llm_config)
+        # 前两次 complete 都返回无效 JSON，第三次 free text 被正则提取
+        responses = [
+            LLMResponse("invalid", tokens=5),
+            LLMResponse("still invalid", tokens=5),
+            LLMResponse("置信度: 55", tokens=5),
+        ]
+
+        with patch.object(client, "complete", side_effect=responses):
+            resp = client.complete_structured(
+                [{"role": "user", "content": "hi"}], _TestSchema
+            )
+
+        assert resp.parsed == {"confidence": 55.0}
