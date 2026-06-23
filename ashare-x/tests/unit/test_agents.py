@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import cast
 from unittest.mock import MagicMock
 
 from agents.base import (
@@ -14,6 +15,7 @@ from agents.base import (
 )
 from agents.masters.selector import select_masters
 from core.llm_client import LLMResponse, TokenCounter
+from core.state import AgentState
 
 
 class TestTokenCounter:
@@ -224,21 +226,21 @@ class TestDataGatherers:
 
 class TestGatherPriorReports:
     def test_gather_prior_reports_before_current(self):
-        state = {
+        state = cast(AgentState, {
             "market_analyst_report": "market report",
             "fundamentals_analyst_report": "fundamentals report",
-        }
+        })
         result = _gather_prior_reports(state, "news_analyst")
         assert "market_analyst" in result
         assert "fundamentals_analyst" in result
 
     def test_gather_prior_reports_not_found_current(self):
-        state = {"market_analyst_report": "market report"}
+        state = cast(AgentState, {"market_analyst_report": "market report"})
         result = _gather_prior_reports(state, "unknown_agent")
         assert result == ""
 
     def test_gather_prior_reports_empty(self):
-        state = {"market_analyst_report": "market report"}
+        state = cast(AgentState, {"market_analyst_report": "market report"})
         result = _gather_prior_reports(state, "market_analyst")
         assert result == ""
 

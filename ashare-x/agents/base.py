@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from typing import Any
 
 from core.llm_client import LLMClient
 from core.state import AgentState
@@ -35,6 +36,14 @@ def _get_skill_engine() -> SkillEngine:
 
 # 每个分析师Agent对应的数据获取函数
 _DATA_PROVIDERS: dict[str, str] = {
+    "market_analyst": "technical",
+    "fundamentals_analyst": "fundamentals",
+    "news_analyst": "news",
+    "sentiment_analyst": "sentiment",
+}
+
+# 分析师Agent对应的量化预信号计算函数
+_QUANT_SIGNALS: dict[str, str] = {
     "market_analyst": "technical",
     "fundamentals_analyst": "fundamentals",
     "news_analyst": "news",
@@ -216,6 +225,89 @@ _DATA_GATHERERS = {
 }
 
 
+def _compute_quant_signal(agent_name: str, data_text: str) -> str:
+    """对数据文本做量化预分析，生成可解释的预信号。"""
+    try:
+        from agents.analysts.quant_signals import (
+            compute_fundamental_signal,
+            compute_news_signal,
+            compute_sentiment_signal,
+            compute_technical_signal,
+        )
+
+        signal_type = _QUANT_SIGNALS.get(agent_name)
+        if signal_type == "technical":
+            # 从文本中提取关键指标（简化解析）
+            import re
+
+            indicators: dict[str, float | None] = {}
+            tech_keys = [
+                "ma5", "ma20", "ma60", "macd", "dif", "dea",
+                "rsi_14", "boll_upper", "boll_lower", "atr_14",
+            ]
+            for key in tech_keys:
+                pattern = rf"{key.replace('_', r'[_/]?')}=([^,\n]+)"
+                m = re.search(pattern, data_text, re.IGNORECASE)
+                if m:
+                    try:
+                        val = m.group(1).strip()
+                        indicators[key] = float(val) if val not in ("N/A", "None", "") else None
+                    except (ValueError, TypeError):
+                        indicators[key] = None
+            sig = compute_technical_signal(indicators)
+        elif signal_type == "fundamentals":
+            fund: dict[str, float | None] = {}
+            fund_keys = [
+                "pe_ratio", "pb_ratio", "roe", "gross_margin",
+                "revenue_yoy", "net_income_yoy", "debt_to_equity",
+            ]
+            for key in fund_keys:
+                pattern = rf"{key.replace('_', ' ')}[:：]?\s*([0-9.\-]+)"
+                m = re.search(pattern, data_text, re.IGNORECASE)
+                if m:
+                    try:
+                        fund[key] = float(m.group(1))
+                    except (ValueError, TypeError):
+                        fund[key] = None
+            sig = compute_fundamental_signal(fund)
+        elif signal_type == "news":
+            news: list[dict[str, str]] = []
+            for line in data_text.splitlines():
+                m = re.search(r"\[([^\]]+)\]\s*(.+)", line)
+                if m:
+                    news.append({"date": m.group(1), "title": m.group(2)})
+            sig = compute_news_signal(news)
+        elif signal_type == "sentiment":
+            sent: dict[str, Any] = {}
+            for key in ["主力净流入", "主力净占比", "北向资金"]:
+                m = re.search(rf"{key}[:：]?\s*([0-9.\-]+)", data_text)
+                if m:
+                    try:
+                        if key == "主力净流入":
+                            sent.setdefault("fund_flow", {})["main_net_inflow"] = float(
+                                m.group(1)
+                            )
+                        elif key == "主力净占比":
+                            sent.setdefault("fund_flow", {})["main_net_pct"] = float(m.group(1))
+                        elif key == "北向资金":
+                            sent["north_flow"] = float(m.group(1))
+                    except (ValueError, TypeError):
+                        pass
+            sig = compute_sentiment_signal(sent)
+        else:
+            return ""
+
+        return (
+            f"## 量化预信号\n"
+            f"  方向: {sig['signal']}\n"
+            f"  得分: {sig['confidence']}/100\n"
+            f"  依据: {sig['reason']}"
+        )
+    except Exception as e:
+        logger.debug("量化预信号计算失败 %s: %s", agent_name, e)
+        return ""
+
+
 def _gather_prior_reports(state: AgentState, agent_name: str) -> str:
     """从state中收集前序Agent的报告，注入给后续Agent。"""
     report_keys = {
@@ -361,6 +453,10 @@ def create_agent(
             if gatherer:
                 data_text = gatherer(ticker)
                 user_parts.append(data_text)
+                # 1.1 量化预信号：基于原始数据计算先验信号注入LLM
+                quant_signal = _compute_quant_signal(agent_name, data_text)
+                if quant_signal:
+                    user_parts.append(quant_signal)
 
         # 2. 收集前序Agent报告（辩论/风险/决策Agent需要）
         prior_reports = _gather_prior_reports(state, agent_name)
@@ -400,9 +496,21 @@ def create_agent(
                 agent_name=agent_name,
                 ticker=ticker,
             )
-            return {f"{agent_name}_report": response.content}
+            result: dict[str, Any] = {f"{agent_name}_report": response.content}
         except Exception as e:
             logger.error("Agent %s 执行失败: %s", agent_name, e)
-            return {f"{agent_name}_report": f"分析失败: {e}"}
+            result = {f"{agent_name}_report": f"分析失败: {e}"}
+
+        # 辩论节点自动递增轮次，防止条件路由无限循环
+        if agent_name in ("bull_researcher", "bear_researcher"):
+            result["investment_debate_rounds"] = (
+                state.get("investment_debate_rounds", 0) + 1
+            )
+        elif agent_name in ("aggressive_analyst", "conservative_analyst", "neutral_analyst"):
+            result["risk_debate_rounds"] = (
+                state.get("risk_debate_rounds", 0) + 1
+            )
+
+        return result
 
     return agent_node

@@ -47,6 +47,21 @@ class AgentState(TypedDict, total=False):
     # ── 分析师产出 ──
     analyst_signals: dict[str, AnalystSignal]
 
+    # ── Agent 报告（自由文本，供后续节点/前端展示） ──
+    market_analyst_report: str
+    fundamentals_analyst_report: str
+    news_analyst_report: str
+    sentiment_analyst_report: str
+    bull_researcher_report: str
+    bear_researcher_report: str
+    research_manager_report: str
+    trader_report: str
+    aggressive_analyst_report: str
+    conservative_analyst_report: str
+    neutral_analyst_report: str
+    portfolio_manager_report: str
+    master_review_report: str
+
     # ── 辩论 ──
     debate_messages: list[dict[str, Any]]  # 多空 + 风险辩论消息历史
     investment_debate_rounds: int  # 多空辩论已完成轮次
@@ -60,6 +75,7 @@ class AgentState(TypedDict, total=False):
     # ── 大师Agent ──
     selected_masters: list[str]  # master_selector选中的大师
     master_signals: dict[str, AnalystSignal]  # 大师Agent输出信号
+    master_prior_context: str  # 大师评审前注入的前序摘要
 
     # ── 元 ──
     messages: list[dict[str, Any]]  # LLM 原始消息 (可压缩, 见 S04:24)

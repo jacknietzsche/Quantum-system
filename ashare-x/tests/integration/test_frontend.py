@@ -10,6 +10,7 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -20,13 +21,13 @@ def server_port() -> int:
     """找一个可用端口。"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("127.0.0.1", 0))
-    port = sock.getsockname()[1]
+    port = int(sock.getsockname()[1])
     sock.close()
     return port
 
 
 @pytest.fixture(scope="session")
-def server_url(server_port: int) -> str:
+def server_url(server_port: int) -> Generator[str, None, None]:
     """启动后端服务并返回 base URL。"""
     project_root = Path(__file__).resolve().parents[2]
     proc = subprocess.Popen(

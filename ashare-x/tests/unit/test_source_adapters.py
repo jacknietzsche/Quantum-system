@@ -366,6 +366,105 @@ class TestAKShareAdapter:
             assert adapter.test_connect() is False
 
 
+class TestEastMoneyAdapter:
+    """东方财富适配器测试。"""
+
+    def test_init(self):
+        from providers.sources.eastmoney_src import EastMoneyAdapter
+
+        adapter = EastMoneyAdapter()
+        assert adapter.name == "eastmoney"
+        assert adapter.priority == 3
+
+    def test_to_eastmoney_code(self):
+        from providers.sources.eastmoney_src import EastMoneyAdapter
+
+        adapter = EastMoneyAdapter()
+        assert adapter._to_eastmoney_code("600519") == "1.600519"
+        assert adapter._to_eastmoney_code("000001") == "0.000001"
+
+    def test_fetch_kline_success(self):
+        from providers.sources.eastmoney_src import EastMoneyAdapter
+
+        adapter = EastMoneyAdapter()
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "data": {
+                "klines": [
+                    "2026-06-22,1.0,1.5,2.0,0.5,1000,1500,5.0,1.0,0.5,1.5",
+                ]
+            }
+        }
+        with patch.object(adapter.client, "get", return_value=mock_resp):
+            data = adapter.fetch_kline("600519", days=1)
+
+        assert data is not None
+        assert len(data) == 1
+        assert data[0]["close"] == 1.5
+        assert data[0]["volume"] == 1000.0
+
+    def test_fetch_kline_empty(self):
+        from providers.sources.eastmoney_src import EastMoneyAdapter
+
+        adapter = EastMoneyAdapter()
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": {"klines": []}}
+        with patch.object(adapter.client, "get", return_value=mock_resp):
+            assert adapter.fetch_kline("600519") is None
+
+    def test_fetch_basic_success(self):
+        from providers.sources.eastmoney_src import EastMoneyAdapter
+
+        adapter = EastMoneyAdapter()
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "data": {
+                "diff": {
+                    "0": {
+                        "f12": "600519", "f14": "茅台", "f2": 100.0,
+                        "f3": 1.5, "f4": 1.0, "f5": 1000.0, "f6": 100000.0,
+                        "f9": 20.0, "f10": 1.5, "f23": 3.0,
+                    }
+                }
+            }
+        }
+        with patch.object(adapter.client, "get", return_value=mock_resp):
+            data = adapter.fetch_basic("600519")
+
+        assert data is not None
+        assert data["stock_name"] == "茅台"
+        assert data["latest_price"] == 100.0
+        assert data["pe_ratio"] == 20.0
+
+    def test_fetch_universe_success(self):
+        from providers.sources.eastmoney_src import EastMoneyAdapter
+
+        adapter = EastMoneyAdapter()
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "data": {
+                "diff": {
+                    "0": {"f12": "600519", "f14": "茅台", "f13": "1"},
+                    "1": {"f12": "000001", "f14": "平安银行", "f13": "0"},
+                }
+            }
+        }
+        with patch.object(adapter.client, "get", return_value=mock_resp):
+            data = adapter.fetch_universe()
+
+        assert data is not None
+        assert len(data) == 2
+        assert data[0]["exchange"] == "SH"
+        assert data[1]["exchange"] == "SZ"
+
+    def test_test_connect_failure(self):
+        from providers.sources.eastmoney_src import EastMoneyAdapter
+
+        adapter = EastMoneyAdapter()
+        with patch.object(adapter.client, "get", side_effect=Exception("timeout")):
+            assert adapter.test_connect() is False
+
+
 class TestYFinanceAdapter:
     """yfinance适配器测试。"""
 

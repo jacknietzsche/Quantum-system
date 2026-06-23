@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 import sqlite3
+from collections.abc import Generator
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -14,7 +15,7 @@ from providers.data_bus import DatabaseFirstDataBus, _safe_float
 
 
 @pytest.fixture()
-def tmp_db(tmp_path: Path) -> DatabaseFirstDataBus:
+def tmp_db(tmp_path: Path) -> Generator[DatabaseFirstDataBus, None, None]:
     """使用临时数据库的 DataBus 实例。"""
     db_path = tmp_path / "test.db"
     bus = DatabaseFirstDataBus(str(db_path))
@@ -98,7 +99,9 @@ class TestSnapshotHelpers:
     def test_save_snapshot_overwrites(self, tmp_db: DatabaseFirstDataBus):
         tmp_db._save_snapshot("test_snap", {"v": 1})
         tmp_db._save_snapshot("test_snap", {"v": 2})
-        assert tmp_db._query_snapshot("test_snap")["data"] == {"v": 2}
+        snap = tmp_db._query_snapshot("test_snap")
+        assert snap is not None
+        assert snap["data"] == {"v": 2}
 
 
 class TestKline:
@@ -592,3 +595,76 @@ class TestSpotData:
         DatabaseFirstDataBus._spot_cache_fail_time = datetime.now()
 
         assert tmp_db._get_spot_data("600519") is None
+
+
+class TestStockUniverse:
+    """get_stock_universe 全市场列表测试。"""
+
+    def test_get_stock_universe_from_db_fresh(self, tmp_db: DatabaseFirstDataBus):
+        stocks = [{"stock_code": "600519", "stock_name": "茅台", "exchange": "SH"}]
+        tmp_db._save_snapshot("stock_universe", stocks)
+
+        result = tmp_db.get_stock_universe()
+        assert result == stocks
+
+    def test_get_stock_universe_fallback_to_api(self, tmp_db: DatabaseFirstDataBus):
+        fake_adapter = MagicMock()
+        fake_adapter.fetch_universe.return_value = [
+            {"stock_code": "000001", "stock_name": "平安银行", "exchange": "SZ"}
+        ]
+
+        with patch(
+            "providers.sources.eastmoney_src.EastMoneyAdapter", return_value=fake_adapter
+        ), patch(
+            "providers.sources.tushare_src.TushareAdapter",
+            return_value=MagicMock(fetch_universe=lambda: None),
+        ), patch(
+            "providers.sources.tickflow_src.TickFlowAdapter",
+            return_value=MagicMock(fetch_universe=lambda: None),
+        ):
+            result = tmp_db.get_stock_universe(force_refresh=True)
+
+        assert result is not None
+        assert len(result) == 1
+        assert result[0]["stock_code"] == "000001"
+
+    def test_get_stock_universe_empty_returns_cached(self, tmp_db: DatabaseFirstDataBus):
+        stocks = [{"stock_code": "600519", "stock_name": "茅台", "exchange": "SH"}]
+        tmp_db._save_snapshot("stock_universe", stocks)
+
+        original_import = builtins.__import__
+
+        def _mock_import(name, *args, **kwargs):
+            if name == "akshare":
+                raise ImportError("no akshare")
+            return original_import(name, *args, **kwargs)
+
+        with patch(
+            "providers.sources.eastmoney_src.EastMoneyAdapter",
+            return_value=MagicMock(fetch_universe=lambda: None),
+        ), patch(
+            "providers.sources.tushare_src.TushareAdapter",
+            return_value=MagicMock(fetch_universe=lambda: None),
+        ), patch(
+            "providers.sources.tickflow_src.TickFlowAdapter",
+            return_value=MagicMock(fetch_universe=lambda: None),
+        ), patch.object(builtins, "__import__", _mock_import):
+            result = tmp_db.get_stock_universe(force_refresh=True)
+
+        assert result == stocks
+
+
+class TestLoadAdapters:
+    """_load_adapters 加载与排序测试。"""
+
+    def test_adapters_sorted_by_priority(self, tmp_db: DatabaseFirstDataBus):
+        adapters = tmp_db._load_adapters()
+        priorities = [getattr(a, "priority", 99) for a in adapters]
+        assert priorities == sorted(priorities)
+
+    def test_adapters_have_required_methods(self, tmp_db: DatabaseFirstDataBus):
+        adapters = tmp_db._load_adapters()
+        for adapter in adapters:
+            assert callable(getattr(adapter, "fetch_kline", None))
+            assert callable(getattr(adapter, "fetch_basic", None))
+            assert callable(getattr(adapter, "test_connect", None))

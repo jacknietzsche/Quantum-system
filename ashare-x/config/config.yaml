@@ -35,13 +35,20 @@ llm:
 data:
   # 数据库优先策略（见 S05 / experiments exp6）
   cache_first: true
-  # 数据源链（按优先级）: akshare → baostock → tencent → sina → eastmoney
+  # 数据源链（按优先级）: tencent → sina → eastmoney → tickflow → tushare → akshare → yfinance
   sources:
-    - akshare
-    - baostock
     - tencent
     - sina
     - eastmoney
+    - tickflow
+    - tushare
+    - akshare
+    - yfinance
+  # 第三方数据源 token（也可通过环境变量 TUSHARE_TOKEN / TICKFLOW_TOKEN 注入）
+  tushare:
+    token: ""                        # Tushare pro_api token（免费版）
+  tickflow:
+    token: ""                        # TickFlow api_key（免费版可留空）
   # 断路器（见 providers/base.py）
   circuit_breaker:
     failure_threshold: 3

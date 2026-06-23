@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
 from services.backtest import run_factor_backtest
 from services.portfolio import check_industry_constraint, compute_rebalance, optimize_positions
 from services.report import ReportGenerator
@@ -164,5 +166,15 @@ class TestReport:
 class TestBacktest:
     def test_run_backtest(self):
         stocks = [{"code": "600519", "close": 1500}]
-        metrics = run_factor_backtest(stocks)
+        mock_engine = MagicMock()
+        mock_engine.run.return_value = {
+            "total_return": "5.00%",
+            "benchmark_return": "3.00%",
+            "sharpe": 1.2,
+        }
+
+        with patch("services.backtest.VectorbtBacktest", return_value=mock_engine):
+            metrics = run_factor_backtest(stocks)
+
         assert "total_return" in metrics
+        assert metrics["total_return"] == "5.00%"

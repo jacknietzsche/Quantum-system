@@ -17,6 +17,7 @@ import logging
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger("ashare-x.providers.data_bus")
 
@@ -1214,7 +1215,7 @@ class DatabaseFirstDataBus:
             logger.warning("查询快照失败 %s: %s", snapshot_type, e)
             return None
 
-    def _save_snapshot(self, snapshot_type: str, data: dict):
+    def _save_snapshot(self, snapshot_type: str, data: Any):
         """保存JSON快照到 market_snapshot 表。"""
         conn = sqlite3.connect(self.db_path)
         conn.execute(
@@ -1302,6 +1303,93 @@ class DatabaseFirstDataBus:
 
         return []
 
+    def get_stock_universe(self, force_refresh: bool = False) -> list[dict]:
+        """
+        获取 A 股全市场股票列表（沪深主板 + 科创 + 创业板）。
+
+        优先从数据库读取，无数据或过期时依次尝试：
+        EastMoney clist、Tushare stock_basic、TickFlow universes、AKShare stock_info_a_code_name。
+        返回列表，每项包含 stock_code, stock_name, exchange。
+        """
+        snap = self._query_snapshot("stock_universe")
+        if (
+            not force_refresh
+            and snap
+            and snap.get("data")
+            and isinstance(snap["data"], list)
+            and not self._is_stale(snap.get("updated_at"), "stock_info")
+        ):
+            logger.info("全市场股票列表从数据库获取: %d只", len(snap["data"]))
+            return snap["data"]
+
+        stocks: list[dict] | None = None
+        # 1. EastMoney（无需API Key，稳定性好）
+        try:
+            from providers.sources.eastmoney_src import EastMoneyAdapter
+
+            adapter = EastMoneyAdapter()
+            stocks = adapter.fetch_universe()
+            if stocks:
+                logger.info("全市场股票列表从 EastMoney 获取: %d只", len(stocks))
+        except Exception as e:
+            logger.debug("EastMoney 全市场列表失败: %s", e)
+
+        # 2. Tushare
+        if not stocks:
+            try:
+                from providers.sources.tushare_src import TushareAdapter
+
+                adapter = TushareAdapter()
+                stocks = adapter.fetch_universe()
+                if stocks:
+                    logger.info("全市场股票列表从 Tushare 获取: %d只", len(stocks))
+            except Exception as e:
+                logger.debug("Tushare 全市场列表失败: %s", e)
+
+        # 3. TickFlow
+        if not stocks:
+            try:
+                from providers.sources.tickflow_src import TickFlowAdapter
+
+                adapter = TickFlowAdapter()
+                stocks = adapter.fetch_universe()
+                if stocks:
+                    logger.info("全市场股票列表从 TickFlow 获取: %d只", len(stocks))
+            except Exception as e:
+                logger.debug("TickFlow 全市场列表失败: %s", e)
+
+        # 4. AKShare
+        if not stocks:
+            try:
+                import akshare as ak
+
+                df = ak.stock_info_a_code_name()
+                if df is not None and not df.empty:
+                    stocks = [
+                        {
+                            "stock_code": str(row.get("code", "")).strip(),
+                            "stock_name": str(row.get("name", "")).strip(),
+                            "exchange": "",
+                        }
+                        for _, row in df.iterrows()
+                        if str(row.get("code", "")).strip().isdigit()
+                    ]
+                    if stocks:
+                        logger.info("全市场股票列表从 AKShare 获取: %d只", len(stocks))
+            except Exception as e:
+                logger.debug("AKShare 全市场列表失败: %s", e)
+
+        if stocks:
+            self._save_snapshot("stock_universe", stocks)
+            return stocks
+
+        # 返回旧数据兜底
+        if snap and snap.get("data") and isinstance(snap["data"], list):
+            logger.warning("全市场列表获取失败，使用数据库旧数据: %d只", len(snap["data"]))
+            return snap["data"]
+
+        return []
+
     # ══════════════════════════════════════════
     # 工具方法
     # ══════════════════════════════════════════
@@ -1327,32 +1415,27 @@ class DatabaseFirstDataBus:
         return self._load_adapters()
 
     def _load_adapters(self) -> list:
-        """动态加载所有可用的数据源适配器。"""
+        """动态加载所有可用的数据源适配器，并按优先级排序（数字越小越优先）。"""
         adapters: list = []
-        try:
-            from providers.sources.tencent import TencentAdapter
-
-            adapters.append(TencentAdapter())
-        except Exception:
-            pass
-        try:
-            from providers.sources.sina import SinaAdapter
-
-            adapters.append(SinaAdapter())  # type: ignore[arg-type]
-        except Exception:
-            pass
-        try:
-            from providers.sources.akshare_src import AKShareAdapter
-
-            adapters.append(AKShareAdapter())  # type: ignore[arg-type]
-        except Exception:
-            pass
-        try:
-            from providers.sources.yfinance_src import YFinanceAdapter
-
-            adapters.append(YFinanceAdapter())  # type: ignore[arg-type]
-        except Exception:
-            pass
+        candidates = [
+            "providers.sources.tencent.TencentAdapter",
+            "providers.sources.sina.SinaAdapter",
+            "providers.sources.eastmoney_src.EastMoneyAdapter",
+            "providers.sources.tickflow_src.TickFlowAdapter",
+            "providers.sources.tushare_src.TushareAdapter",
+            "providers.sources.akshare_src.AKShareAdapter",
+            "providers.sources.yfinance_src.YFinanceAdapter",
+        ]
+        for path in candidates:
+            try:
+                module_name, class_name = path.rsplit(".", 1)
+                module = __import__(module_name, fromlist=[class_name])
+                adapter_cls = getattr(module, class_name)
+                adapters.append(adapter_cls())
+            except Exception:
+                pass
+        # 按 priority 升序排列，priority 数字越小优先级越高
+        adapters.sort(key=lambda a: getattr(a, "priority", 99))
         return adapters
 
     def _get_spot_data(self, code: str) -> dict | None:

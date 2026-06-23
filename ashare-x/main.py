@@ -6,6 +6,8 @@
   daily    — 每日数据更新
   screen   — 全市场选股
   backtest — 策略回测
+  plan     — 生成每日交易计划
+  schedule — 启动每日定时任务调度
 """
 
 from __future__ import annotations
@@ -13,6 +15,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
+from datetime import datetime
+
+import schedule
 
 
 def cmd_serve(port: int = 8765):
@@ -304,6 +310,73 @@ def cmd_plan(fast: bool = True, show_only: bool = False):
     print("=" * 60)
 
 
+def _is_trading_day(date: datetime | None = None) -> bool:
+    """判断是否为交易日（仅排除周末，简单版）。"""
+    if date is None:
+        date = datetime.now()
+    return date.weekday() < 5
+
+
+def cmd_schedule(
+    update_time: str = "09:00",
+    screen_time: str = "09:30",
+    plan_time: str = "15:10",
+    once: bool = False,
+    skip_weekend: bool = True,
+):
+    """启动每日定时任务调度器。
+
+    默认时间安排（A股交易日）:
+      - 09:00  数据更新 (daily)
+      - 09:30  全市场扫描 (screen)
+      - 15:10  收盘后生成交易计划 (plan)
+    """
+    def _wrap_job(name: str, fn, *, check_trading_day: bool = True):
+        def job():
+            if skip_weekend and check_trading_day and not _is_trading_day():
+                print(f"⏭ {name} 跳过（非交易日）")
+                return
+            print(f"\n🔔 定时任务触发: {name} — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            try:
+                fn()
+            except Exception as e:
+                print(f"❌ {name} 执行失败: {e}")
+        return job
+
+    schedule.every().day.at(update_time).do(
+        _wrap_job("每日数据更新", cmd_daily)
+    )
+    schedule.every().day.at(screen_time).do(
+        _wrap_job("全市场扫描", lambda: cmd_screen(style="balanced", limit=50))
+    )
+    schedule.every().day.at(plan_time).do(
+        _wrap_job("交易计划生成", lambda: cmd_plan(fast=True))
+    )
+
+    print("=" * 60)
+    print("📅 AShare-X 定时调度器已启动")
+    print(f"  数据更新:  每日 {update_time}")
+    print(f"  全市场扫描: 每日 {screen_time}")
+    print(f"  交易计划:  每日 {plan_time}")
+    print(f"  跳过周末:  {'是' if skip_weekend else '否'}")
+    if once:
+        print("  模式:      立即执行一次后退出")
+    else:
+        print("  模式:      常驻调度（按 Ctrl+C 停止）")
+    print("=" * 60)
+
+    if once:
+        schedule.run_all()
+        return
+
+    try:
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+    except KeyboardInterrupt:
+        print("\n🛑 调度器已停止")
+
+
 def main():
     parser = argparse.ArgumentParser(description="AShare-X CLI — A股智能投研系统")
     subparsers = parser.add_subparsers(dest="command")
@@ -338,6 +411,14 @@ def main():
     plan_parser.add_argument("--full", action="store_true", help="完整模式（更多Agent轮次）")
     plan_parser.add_argument("--show", action="store_true", help="仅显示今日计划（不重新生成）")
 
+    # schedule
+    sched_parser = subparsers.add_parser("schedule", help="启动每日定时任务调度")
+    sched_parser.add_argument("--update-time", default="09:00", help="数据更新时间 (HH:MM)")
+    sched_parser.add_argument("--screen-time", default="09:30", help="全市场扫描时间 (HH:MM)")
+    sched_parser.add_argument("--plan-time", default="15:10", help="交易计划生成时间 (HH:MM)")
+    sched_parser.add_argument("--once", action="store_true", help="立即执行一次后退出")
+    sched_parser.add_argument("--no-skip-weekend", action="store_true", help="周末也执行")
+
     args = parser.parse_args()
 
     if args.command == "serve":
@@ -352,6 +433,14 @@ def main():
         cmd_backtest(args.codes, strategy=args.strategy, days=args.days, capital=args.capital)
     elif args.command == "plan":
         cmd_plan(fast=not args.full, show_only=args.show)
+    elif args.command == "schedule":
+        cmd_schedule(
+            update_time=args.update_time,
+            screen_time=args.screen_time,
+            plan_time=args.plan_time,
+            once=args.once,
+            skip_weekend=not args.no_skip_weekend,
+        )
     else:
         parser.print_help()
 

@@ -36,6 +36,7 @@ dependencies = [
     "vectorbt>=1.0",
     # Phase 8: MCP server + ReAct tool calling
     "mcp>=1.0",
+    "schedule>=1.2",        # 每日定时任务调度
 ]
 
 [project.optional-dependencies]

@@ -43,6 +43,8 @@ ENV_MAP: dict[str, str] = {
     "DEEPSEEK_BASE_URL": "llm.deepseek.base_url",
     "DASHSCOPE_API_KEY": "llm.dashscope.api_key",
     "ZHIPU_API_KEY": "llm.zhipu.api_key",
+    "TUSHARE_TOKEN": "data.tushare.token",
+    "TICKFLOW_TOKEN": "data.tickflow.token",
 }
 
 

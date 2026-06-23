@@ -133,15 +133,15 @@ class PaperPortfolio:
     def _apply_slippage(self, price: float, action: str) -> float:
         """应用滑点：买入更贵，卖出更便宜。"""
         if action in ("BUY", "ADD"):
-            return round(price * (1 + self.slippage), 2)
-        return round(price * (1 - self.slippage), 2)
+            return float(round(price * (1 + self.slippage), 2))
+        return float(round(price * (1 - self.slippage), 2))
 
     def _check_price_limit(
         self, code: str, price: float, action: str
     ) -> tuple[bool, str]:
         """检查价格是否触发涨跌停限制。"""
         limit_up, limit_down = self._get_limit_prices(code)
-        if limit_up is None:
+        if limit_up is None or limit_down is None:
             return True, ""
         if action in ("BUY", "ADD") and price >= limit_up:
             return False, f"涨停限制: 价格¥{price} >= 涨停价¥{limit_up}"

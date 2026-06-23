@@ -94,9 +94,12 @@ def create_master_review(llm_client: LLMClient) -> Callable[[AgentState], dict]:
                 continue
 
             try:
-                module_path, func_name = factory_path.rsplit(".", 1)
-                module = importlib.import_module(module_path)
-                factory = getattr(module, func_name)
+                if callable(factory_path):
+                    factory = factory_path
+                else:
+                    module_path, func_name = factory_path.rsplit(".", 1)
+                    module = importlib.import_module(module_path)
+                    factory = getattr(module, func_name)
                 agent_fn = factory(llm_client)
 
                 # 将前序报告摘要注入 state，供大师Agent参考

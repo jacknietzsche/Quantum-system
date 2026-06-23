@@ -160,16 +160,49 @@ class MarketScanner:
         conn.close()
 
     def _get_spot_universe(self) -> list[dict]:
-        """获取全量快照数据。"""
-        cache = DatabaseFirstDataBus._spot_cache
-        if cache and len(cache) > 100:
-            return [{"stock_code": code, **data} for code, data in cache.items()]
-        return []
+        """获取全量快照数据（优先全市场股票列表 + 实时快照）。"""
+        universe = self.bus.get_stock_universe()
+        if not universe:
+            # 兜底：使用 spot 缓存
+            cache = DatabaseFirstDataBus._spot_cache
+            if cache and len(cache) > 100:
+                return [{"stock_code": code, **data} for code, data in cache.items()]
+            return []
+
+        # 获取实时快照补充价格与指标
+        snapshot_map: dict = {}
+        try:
+            snapshot = self.bus.get_market_snapshot()
+            for s in snapshot:
+                snapshot_map[s.get("stock_code", "")] = s
+        except Exception as e:
+            logger.warning("获取实时快照失败: %s", e)
+
+        enriched = []
+        for stock in universe:
+            code = stock.get("stock_code", "")
+            snap = snapshot_map.get(code, {})
+            item = {
+                "stock_code": code,
+                "stock_name": stock.get("stock_name", snap.get("stock_name", "")),
+                "latest_price": snap.get("latest_price", 0),
+                "change_pct": snap.get("change_pct", 0),
+                "volume": snap.get("volume", 0),
+                "amount": snap.get("amount", 0),
+                "pe_ratio": snap.get("pe_ratio", 0),
+                "pb_ratio": snap.get("pb_ratio", 0),
+                "turnover_rate": snap.get("turnover_rate", 0),
+            }
+            enriched.append(item)
+        return enriched
 
     def _refresh_and_get_universe(self) -> list[dict]:
         """刷新快照缓存并获取。"""
-        # 调用 get_market_breadth 会触发 stock_zh_a_spot_em 并缓存
-        self.bus.get_market_breadth()
+        # 先刷新实时快照
+        try:
+            self.bus.get_market_snapshot(force_refresh=True)
+        except Exception as e:
+            logger.warning("刷新实时快照失败: %s", e)
         return self._get_spot_universe()
 
     @staticmethod
