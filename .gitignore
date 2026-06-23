@@ -62,6 +62,10 @@ reports/
 backups/
 runtime/
 
+# === 临时输出文件 ===
+*_output.txt
+cov*.txt
+
 # === IDE / OS ===
 .idea/
 .vscode/

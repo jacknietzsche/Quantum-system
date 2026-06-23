@@ -12,6 +12,10 @@ reports/
 *.db
 *.db-journal
 
+# ── 临时输出文件 ──
+*_output.txt
+cov*.txt
+
 # ── Python ──
 __pycache__/
 *.py[cod]
