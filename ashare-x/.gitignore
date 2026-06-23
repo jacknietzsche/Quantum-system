@@ -3,6 +3,7 @@
 .env.local
 config.json
 config/config.local.yaml
+config/user_config.yaml
 
 # ── 运行时数据 ──
 runtime/
