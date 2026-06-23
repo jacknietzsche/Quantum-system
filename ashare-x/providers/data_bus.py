@@ -342,7 +342,7 @@ class DatabaseFirstDataBus:
                 "ma60": row[14],
                 "rsi_14": row[15],
                 "macd": row[16],
-                "updated_at": row[17] if len(row) > 17 else None,
+                "updated_at": row[18] if len(row) > 18 else row[17] if len(row) > 17 else None,
             }
         except Exception as e:
             logger.warning("查询股票信息失败 %s: %s", code, e)
@@ -1244,15 +1244,14 @@ class DatabaseFirstDataBus:
           pe_ratio, pb_ratio, turnover_rate, volume, amount
         """
         # 1. 查询数据库快照
-        if not force_refresh:
-            snap = self._query_snapshot("all_stocks")
-            if snap and snap.get("data"):
-                data = snap["data"]
-                if isinstance(data, list) and not self._is_stale(
-                    snap.get("updated_at"), "stock_info"
-                ):
-                    logger.info("全市场快照从数据库获取: %d只", len(data))
-                    return data
+        snap = self._query_snapshot("all_stocks")
+        if not force_refresh and snap and snap.get("data"):
+            data = snap["data"]
+            if isinstance(data, list) and not self._is_stale(
+                snap.get("updated_at"), "stock_info"
+            ):
+                logger.info("全市场快照从数据库获取: %d只", len(data))
+                return data
 
         # 2. 从API获取
         stocks: list[dict] = []
