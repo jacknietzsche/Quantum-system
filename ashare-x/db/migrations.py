@@ -22,7 +22,10 @@ def get_current_version() -> int:
     """获取当前数据库版本。"""
     engine = get_engine()
     with engine.connect() as conn:
-        result = conn.execute(text("SELECT MAX(version) FROM _migration_version"))
+        try:
+            result = conn.execute(text("SELECT MAX(version) FROM _migration_version"))
+        except Exception:
+            return 0
         row = result.fetchone()
         return row[0] if row and row[0] else 0
 
