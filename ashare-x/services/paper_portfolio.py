@@ -3,6 +3,8 @@
 持久化到SQLite，遵循A股交易规则:
 - T+1: 当日买入次日可卖
 - 100股整数倍
+- 涨跌停: 主板±10%，科创/创业板±20%
+- 滑点: 买入上浮，卖出下浮
 - 佣金: max(0.025%, ¥5)
 - 印花税: 0.1%（卖出方）
 - 过户费: 0.001%
@@ -34,6 +36,7 @@ class PaperPortfolio:
         self.min_commission = self.config.get("portfolio.min_commission", 5)
         self.stamp_tax_rate = self.config.get("portfolio.stamp_tax_rate", 0.001)
         self.transfer_fee_rate = self.config.get("portfolio.transfer_fee_rate", 0.00001)
+        self.slippage = self.config.get("portfolio.slippage", 0.001)
         self._ensure_account()
 
     def _get_conn(self) -> sqlite3.Connection:
@@ -92,6 +95,60 @@ class PaperPortfolio:
         """取100股整数倍。"""
         return int((shares // self.lot_size) * self.lot_size)
 
+    @staticmethod
+    def _detect_price_limit_pct(code: str) -> float:
+        """判断股票涨跌停幅度。主板10%，科创/创业板/北交所20%。"""
+        if code.startswith(("688", "689", "300", "301", "8", "4")):
+            return 0.20
+        return 0.10
+
+    def _fetch_prev_close(self, code: str) -> float | None:
+        """获取昨日收盘价，用于计算涨跌停价。"""
+        try:
+            from providers.data_bus import DatabaseFirstDataBus
+
+            bus = DatabaseFirstDataBus(self.db_path)
+            info = bus.get_stock_info(code)
+            if info:
+                prev_close = info.get("prev_close") or info.get("close")
+                if prev_close and prev_close > 0:
+                    return float(prev_close)
+            kline = bus.get_kline(code, days=5)
+            if kline and len(kline) >= 2:
+                return float(kline[-2].get("close", 0))
+        except Exception as e:
+            logger.debug("获取昨日收盘价失败 %s: %s", code, e)
+        return None
+
+    def _get_limit_prices(self, code: str) -> tuple[float | None, float | None]:
+        """返回 (涨停价, 跌停价)。数据不足时返回 (None, None)。"""
+        prev_close = self._fetch_prev_close(code)
+        if prev_close is None or prev_close <= 0:
+            return None, None
+        limit_pct = self._detect_price_limit_pct(code)
+        limit_up = round(prev_close * (1 + limit_pct), 2)
+        limit_down = round(prev_close * (1 - limit_pct), 2)
+        return limit_up, limit_down
+
+    def _apply_slippage(self, price: float, action: str) -> float:
+        """应用滑点：买入更贵，卖出更便宜。"""
+        if action in ("BUY", "ADD"):
+            return round(price * (1 + self.slippage), 2)
+        return round(price * (1 - self.slippage), 2)
+
+    def _check_price_limit(
+        self, code: str, price: float, action: str
+    ) -> tuple[bool, str]:
+        """检查价格是否触发涨跌停限制。"""
+        limit_up, limit_down = self._get_limit_prices(code)
+        if limit_up is None:
+            return True, ""
+        if action in ("BUY", "ADD") and price >= limit_up:
+            return False, f"涨停限制: 价格¥{price} >= 涨停价¥{limit_up}"
+        if action in ("REDUCE", "CLEAR") and price <= limit_down:
+            return False, f"跌停限制: 价格¥{price} <= 跌停价¥{limit_down}"
+        return True, ""
+
     def _calc_buy_cost(self, price: float, shares: int) -> dict:
         """计算买入总成本（含手续费）。"""
         amount = price * shares
@@ -128,7 +185,12 @@ class PaperPortfolio:
         if shares <= 0:
             return {"ok": False, "error": "股数不足100股"}
 
-        costs = self._calc_buy_cost(price, shares)
+        ok, err = self._check_price_limit(code, price, "BUY")
+        if not ok:
+            return {"ok": False, "error": err}
+
+        exec_price = self._apply_slippage(price, "BUY")
+        costs = self._calc_buy_cost(exec_price, shares)
         cash = self._get_cash()
         if costs["total"] > cash:
             return {"ok": False, "error": f"资金不足: 需要¥{costs['total']:.2f}, 可用¥{cash:.2f}"}
@@ -148,14 +210,14 @@ class PaperPortfolio:
             "(stock_code, stock_name, shares, avg_cost, "
             "entry_date, last_update, t1_blocked_shares) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (code, name, shares, price, today, now, shares),
+            (code, name, shares, exec_price, today, now, shares),
         )
         # 记录交易
         conn.execute(
             "INSERT INTO paper_trades "
             "(stock_code, stock_name, action, shares, price, amount, commission, stamp_tax, "
             "trade_date, reasoning) VALUES (?, ?, 'BUY', ?, ?, ?, ?, 0, ?, ?)",
-            (code, name, shares, price, costs["amount"], costs["commission"],
+            (code, name, shares, exec_price, costs["amount"], costs["commission"],
              today, reasoning),
         )
         conn.commit()
@@ -163,10 +225,10 @@ class PaperPortfolio:
 
         logger.info(
             "买入 %s %s: %d股 @¥%.2f, 总成本¥%.2f",
-            code, name, shares, price, costs["total"],
+            code, name, shares, exec_price, costs["total"],
         )
         return {"ok": True, "action": "BUY", "code": code, "shares": shares,
-                "price": price, "total_cost": costs["total"]}
+                "price": exec_price, "total_cost": costs["total"]}
 
     def add(self, code: str, name: str, price: float, shares: int,
             reasoning: str = "") -> dict:
@@ -175,7 +237,12 @@ class PaperPortfolio:
         if shares <= 0:
             return {"ok": False, "error": "股数不足100股"}
 
-        costs = self._calc_buy_cost(price, shares)
+        ok, err = self._check_price_limit(code, price, "ADD")
+        if not ok:
+            return {"ok": False, "error": err}
+
+        exec_price = self._apply_slippage(price, "ADD")
+        costs = self._calc_buy_cost(exec_price, shares)
         cash = self._get_cash()
         if costs["total"] > cash:
             return {"ok": False, "error": f"资金不足: 需要¥{costs['total']:.2f}, 可用¥{cash:.2f}"}
@@ -196,7 +263,7 @@ class PaperPortfolio:
         old_shares, old_cost, old_t1 = row
         # 加权平均成本
         new_shares = old_shares + shares
-        new_avg_cost = (old_shares * old_cost + shares * price) / new_shares
+        new_avg_cost = (old_shares * old_cost + shares * exec_price) / new_shares
 
         # 扣减现金
         conn.execute(
@@ -214,7 +281,7 @@ class PaperPortfolio:
             "INSERT INTO paper_trades "
             "(stock_code, stock_name, action, shares, price, amount, commission, stamp_tax, "
             "trade_date, reasoning) VALUES (?, ?, 'ADD', ?, ?, ?, ?, 0, ?, ?)",
-            (code, name, shares, price, costs["amount"], costs["commission"],
+            (code, name, shares, exec_price, costs["amount"], costs["commission"],
              today, reasoning),
         )
         conn.commit()
@@ -222,10 +289,10 @@ class PaperPortfolio:
 
         logger.info(
             "加仓 %s %s: +%d股 @¥%.2f, 新均价¥%.2f",
-            code, name, shares, price, new_avg_cost,
+            code, name, shares, exec_price, new_avg_cost,
         )
         return {"ok": True, "action": "ADD", "code": code, "shares": shares,
-                "price": price, "new_avg_cost": round(new_avg_cost, 2),
+                "price": exec_price, "new_avg_cost": round(new_avg_cost, 2),
                 "total_shares": new_shares}
 
     def reduce(self, code: str, price: float, shares: int,
@@ -234,6 +301,12 @@ class PaperPortfolio:
         shares = self._round_lot(shares)
         if shares <= 0:
             return {"ok": False, "error": "股数不足100股"}
+
+        ok, err = self._check_price_limit(code, price, "REDUCE")
+        if not ok:
+            return {"ok": False, "error": err}
+
+        exec_price = self._apply_slippage(price, "REDUCE")
 
         conn = self._get_conn()
         today = datetime.now().strftime("%Y-%m-%d")
@@ -255,7 +328,7 @@ class PaperPortfolio:
             conn.close()
             return {"ok": False, "error": f"可卖不足: T+1限制, 可卖{sellable}股"}
 
-        revenue = self._calc_sell_revenue(price, shares)
+        revenue = self._calc_sell_revenue(exec_price, shares)
         new_shares = holding_shares - shares
 
         # 增加现金
@@ -273,7 +346,7 @@ class PaperPortfolio:
 
         # 记录交易
         profit = (
-            (price - avg_cost) * shares
+            (exec_price - avg_cost) * shares
             - revenue["commission"]
             - revenue["stamp_tax"]
             - revenue["transfer_fee"]
@@ -282,16 +355,16 @@ class PaperPortfolio:
             "INSERT INTO paper_trades "
             "(stock_code, stock_name, action, shares, price, amount, commission, stamp_tax, "
             "trade_date, reasoning) VALUES (?, ?, 'REDUCE', ?, ?, ?, ?, ?, ?, ?)",
-            (code, stock_name, shares, price, revenue["amount"], revenue["commission"],
+            (code, stock_name, shares, exec_price, revenue["amount"], revenue["commission"],
              revenue["stamp_tax"], today, reasoning),
         )
         conn.commit()
         conn.close()
 
         logger.info("减仓 %s %s: -%d股 @¥%.2f, 剩余%d股, 盈亏¥%.2f",
-                    code, stock_name, shares, price, new_shares, profit)
+                    code, stock_name, shares, exec_price, new_shares, profit)
         return {"ok": True, "action": "REDUCE", "code": code, "shares": shares,
-                "price": price, "net_revenue": revenue["net"],
+                "price": exec_price, "net_revenue": revenue["net"],
                 "remaining_shares": new_shares, "profit": round(profit, 2)}
 
     def clear(self, code: str, price: float, reasoning: str = "") -> dict:

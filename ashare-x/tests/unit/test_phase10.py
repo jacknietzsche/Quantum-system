@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -17,19 +17,24 @@ class TestPaperPortfolio:
     """模拟持仓服务测试。"""
 
     @pytest.fixture()
-    def portfolio(self, tmp_path):
-        """创建使用临时数据库的PaperPortfolio。"""
+    def portfolio(self, tmp_path, monkeypatch):
+        """创建使用临时数据库的PaperPortfolio，并mock数据总线。"""
         from core.config import Config
+        from providers import data_bus as db_mod
 
         Config.reset()
         db_path = str(tmp_path / "test.db")
-        # 初始化数据库表
-        from providers.data_bus import DatabaseFirstDataBus
 
-        DatabaseFirstDataBus(db_path)
+        fake_bus = MagicMock()
+        fake_bus.get_stock_info.return_value = {"latest_price": 300.0, "prev_close": 300.0}
+        fake_bus.get_kline.return_value = []
+        monkeypatch.setattr(db_mod, "DatabaseFirstDataBus", lambda *args, **kwargs: fake_bus)
+
         from services.paper_portfolio import PaperPortfolio
 
-        return PaperPortfolio(db_path=db_path)
+        pp = PaperPortfolio(db_path=db_path)
+        pp.slippage = 0.0  # 保持原有断言精确
+        return pp
 
     def test_buy_initial(self, portfolio):
         """首次买入→持仓正确。"""
@@ -53,7 +58,7 @@ class TestPaperPortfolio:
 
     def test_buy_insufficient_funds(self, portfolio):
         """资金不足时买入失败。"""
-        result = portfolio.buy("600519", "贵州茅台", 99999.0, 600, "测试")
+        result = portfolio.buy("600519", "贵州茅台", 200.0, 1000, "测试")
         assert result["ok"] is False
         assert "资金不足" in result["error"]
 

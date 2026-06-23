@@ -117,7 +117,12 @@ class DailyPlanGenerator:
                     plan["actions"].append(decision.to_dict())
                     # 执行模拟交易
                     if self.auto_trade:
-                        self._execute_paper_trade(decision)
+                        trade_result = self._execute_paper_trade(decision)
+                        if not trade_result.get("ok"):
+                            err = trade_result.get("error", "unknown")
+                            plan["errors"].append(
+                                f"模拟交易失败 {h['stock_code']}: {err}"
+                            )
             except Exception as e:
                 plan["errors"].append(f"分析{h['stock_code']}失败: {e}")
                 logger.warning("分析持仓 %s 失败: %s", h["stock_code"], e)
@@ -141,7 +146,12 @@ class DailyPlanGenerator:
                     if decision.action != "WATCH":
                         plan["actions"].append(decision.to_dict())
                         if self.auto_trade:
-                            self._execute_paper_trade(decision)
+                            trade_result = self._execute_paper_trade(decision)
+                            if not trade_result.get("ok"):
+                                err = trade_result.get("error", "unknown")
+                                plan["errors"].append(
+                                    f"模拟交易失败 {stock['stock_code']}: {err}"
+                                )
                     # 标记已分析
                     self.scanner.mark_analyzed(stock["stock_code"])
             except Exception as e:
@@ -273,35 +283,37 @@ class DailyPlanGenerator:
 
         return (never_analyzed + analyzed)[:max_count]
 
-    def _execute_paper_trade(self, decision: PositionDecision):
-        """根据决策执行模拟交易。"""
+    def _execute_paper_trade(self, decision: PositionDecision) -> dict:
+        """根据决策执行模拟交易，返回执行结果。"""
         try:
             if decision.action == "INITIAL_BUY" and decision.target_shares > 0:
-                self.portfolio.buy(
+                return self.portfolio.buy(
                     decision.stock_code, decision.stock_name,
                     decision.target_price or decision.current_price,
                     decision.target_shares, decision.reasoning,
                 )
-            elif decision.action == "ADD" and decision.target_shares > 0:
-                self.portfolio.add(
+            if decision.action == "ADD" and decision.target_shares > 0:
+                return self.portfolio.add(
                     decision.stock_code, decision.stock_name,
                     decision.target_price or decision.current_price,
                     decision.target_shares, decision.reasoning,
                 )
-            elif decision.action == "REDUCE" and decision.target_shares > 0:
-                self.portfolio.reduce(
+            if decision.action == "REDUCE" and decision.target_shares > 0:
+                return self.portfolio.reduce(
                     decision.stock_code,
                     decision.target_price or decision.current_price,
                     decision.target_shares, decision.reasoning,
                 )
-            elif decision.action == "CLEAR":
-                self.portfolio.clear(
+            if decision.action == "CLEAR":
+                return self.portfolio.clear(
                     decision.stock_code,
                     decision.target_price or decision.current_price,
                     decision.reasoning,
                 )
         except Exception as e:
             logger.warning("模拟交易执行失败 %s: %s", decision.stock_code, e)
+            return {"ok": False, "error": str(e)}
+        return {"ok": True, "skipped": True}
 
     @staticmethod
     def _generate_summary(plan: dict) -> str:
