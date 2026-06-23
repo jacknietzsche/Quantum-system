@@ -11,9 +11,11 @@ const api = axios.create({
 api.interceptors.response.use(
   (res) => res.data,
   (err) => {
-    const msg = err.response?.data?.message || err.message || '请求失败'
-    console.error(msg)
-    return Promise.reject(msg)
+    const data = err.response?.data
+    const message =
+      data?.message || data?.error || err.message || '请求失败'
+    console.error('[API Error]', message)
+    return Promise.reject(message)
   },
 )
 

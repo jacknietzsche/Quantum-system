@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import api from '../api'
+import ErrorAlert from '../components/ErrorAlert'
+import { validateStockCode } from '../utils/validation'
 
 const AGENT_STATUS_COLORS = {
   in_progress: 'text-amber-400',
@@ -9,6 +11,7 @@ const AGENT_STATUS_COLORS = {
 
 export default function Analysis() {
   const [ticker, setTicker] = useState('600519')
+  const [tickerError, setTickerError] = useState('')
   const [fastMode, setFastMode] = useState(false)
   const [enableMasters, setEnableMasters] = useState(false)
   const [job, setJob] = useState(null)
@@ -17,25 +20,41 @@ export default function Analysis() {
   const [logs, setLogs] = useState([])
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const esRef = useRef(null)
 
   const startAnalysis = async () => {
+    const validation = validateStockCode(ticker)
+    setTickerError(validation)
+    if (validation) return
+
     setLoading(true)
+    setError('')
     setProgress(0)
     setAgents([])
     setLogs([])
     setResult(null)
     try {
       const data = await api.post('/analysis', {
-        ticker,
+        ticker: ticker.trim(),
         fast_mode: fastMode,
         enable_masters: enableMasters,
       })
       setJob(data)
-    } catch {
+    } catch (err) {
       setLoading(false)
+      setError(typeof err === 'string' ? err : '启动分析失败')
     }
   }
+
+  const fetchResult = React.useCallback(async (jobId) => {
+    try {
+      const data = await api.get(`/analysis/${jobId}`)
+      setResult(data?.result || null)
+    } catch (err) {
+      setError(typeof err === 'string' ? err : '获取分析结果失败')
+    }
+  }, [])
 
   useEffect(() => {
     if (!job?.job_id) return
@@ -66,6 +85,8 @@ export default function Analysis() {
         if (e.lastEventId === 'done' || payload.status) {
           if (payload.status === 'completed') {
             fetchResult(job.job_id)
+          } else if (payload.status === 'failed') {
+            setError(payload.error || '分析失败')
           }
           setLoading(false)
           es.close()
@@ -78,34 +99,34 @@ export default function Analysis() {
     es.onerror = () => {
       es.close()
       setLoading(false)
+      setError('实时连接中断')
     }
 
     return () => es.close()
-  }, [job])
-
-  const fetchResult = async (jobId) => {
-    try {
-      const data = await api.get(`/analysis/${jobId}`)
-      setResult(data?.result || null)
-    } catch {
-      // ignore
-    }
-  }
+  }, [job, fetchResult])
 
   return (
     <div>
       <h2 className="text-xl font-bold mb-5">个股分析</h2>
+
+      <ErrorAlert message={error} onClose={() => setError('')} />
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-5">
         <div className="flex flex-wrap items-end gap-4">
           <div>
             <label className="block text-sm text-slate-400 mb-1">股票代码</label>
             <input
-              className="bg-slate-850 border border-slate-700 rounded-lg px-3 py-2 text-sm w-40"
+              className={`bg-slate-850 border rounded-lg px-3 py-2 text-sm w-40 ${
+                tickerError ? 'border-rose-500' : 'border-slate-700'
+              }`}
               value={ticker}
-              onChange={(e) => setTicker(e.target.value)}
+              onChange={(e) => {
+                setTicker(e.target.value)
+                setTickerError('')
+              }}
               placeholder="如 600519"
             />
+            {tickerError && <div className="text-xs text-rose-400 mt-1">{tickerError}</div>}
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-300">
             <input

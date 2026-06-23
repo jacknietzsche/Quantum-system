@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from 'react'
 import api from '../api'
+import ErrorAlert from '../components/ErrorAlert'
+import KLineChart from '../components/KLineChart'
+import { validateStockCode, validatePositiveNumber } from '../utils/validation'
 
 export default function Data() {
   const [stats, setStats] = useState({})
   const [health, setHealth] = useState(null)
   const [code, setCode] = useState('600519')
+  const [codeError, setCodeError] = useState('')
   const [days, setDays] = useState(30)
+  const [daysError, setDaysError] = useState('')
   const [kline, setKline] = useState([])
   const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
   const fetchStats = async () => {
     try {
       const data = await api.get('/data/stats')
       setStats(data || {})
-    } catch {
-      setStats({})
+    } catch (err) {
+      setError(typeof err === 'string' ? err : '获取数据统计失败')
     }
   }
 
@@ -23,8 +29,8 @@ export default function Data() {
     try {
       const data = await api.get('/data/health')
       setHealth(data || null)
-    } catch {
-      setHealth(null)
+    } catch (err) {
+      setError(typeof err === 'string' ? err : '获取数据源健康失败')
     }
   }
 
@@ -34,24 +40,38 @@ export default function Data() {
   }, [])
 
   const queryKline = async () => {
+    const codeErr = validateStockCode(code)
+    const daysErr = validatePositiveNumber(days, '天数')
+    setCodeError(codeErr)
+    setDaysError(daysErr)
+    if (codeErr || daysErr) return
+
+    setError('')
     try {
-      const data = await api.get(`/data/kline?code=${code}&days=${days}`)
+      const data = await api.get(`/data/kline?code=${code.trim()}&days=${days}`)
       setKline(data?.kline || [])
-    } catch {
+      if (!data?.kline?.length) {
+        setMessage('未查询到 K 线数据')
+      } else {
+        setMessage('')
+      }
+    } catch (err) {
       setKline([])
+      setError(typeof err === 'string' ? err : '查询 K 线失败')
     }
   }
 
   const refreshData = async () => {
     setRefreshing(true)
+    setError('')
     setMessage('')
     try {
       await api.post('/data/refresh')
       setMessage('数据刷新已触发')
       await fetchStats()
       await fetchHealth()
-    } catch {
-      setMessage('刷新失败')
+    } catch (err) {
+      setError(typeof err === 'string' ? err : '刷新失败')
     } finally {
       setRefreshing(false)
     }
@@ -60,6 +80,14 @@ export default function Data() {
   return (
     <div>
       <h2 className="text-xl font-bold mb-5">数据管理</h2>
+
+      <ErrorAlert message={error} onClose={() => setError('')} />
+
+      {message && (
+        <div className="bg-sky-900/20 border border-sky-800 rounded-xl p-4 mb-5 text-sm text-sky-200">
+          {message}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
@@ -110,7 +138,6 @@ export default function Data() {
         >
           {refreshing ? '刷新中...' : '🔄 刷新数据'}
         </button>
-        {message && <div className="mt-2 text-sm text-slate-400">{message}</div>}
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-5">
@@ -119,19 +146,31 @@ export default function Data() {
           <div>
             <label className="block text-sm text-slate-400 mb-1">股票代码</label>
             <input
-              className="bg-slate-850 border border-slate-700 rounded-lg px-3 py-2 text-sm w-40"
+              className={`bg-slate-850 border rounded-lg px-3 py-2 text-sm w-40 ${
+                codeError ? 'border-rose-500' : 'border-slate-700'
+              }`}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => {
+                setCode(e.target.value)
+                setCodeError('')
+              }}
             />
+            {codeError && <div className="text-xs text-rose-400 mt-1">{codeError}</div>}
           </div>
           <div>
             <label className="block text-sm text-slate-400 mb-1">天数</label>
             <input
               type="number"
-              className="bg-slate-850 border border-slate-700 rounded-lg px-3 py-2 text-sm w-28"
+              className={`bg-slate-850 border rounded-lg px-3 py-2 text-sm w-28 ${
+                daysError ? 'border-rose-500' : 'border-slate-700'
+              }`}
               value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
+              onChange={(e) => {
+                setDays(Number(e.target.value))
+                setDaysError('')
+              }}
             />
+            {daysError && <div className="text-xs text-rose-400 mt-1">{daysError}</div>}
           </div>
           <button
             onClick={queryKline}
@@ -140,6 +179,12 @@ export default function Data() {
             查询
           </button>
         </div>
+
+        {kline.length > 0 && (
+          <div className="mt-4 bg-slate-850 rounded-lg p-2">
+            <KLineChart data={kline} height={360} />
+          </div>
+        )}
 
         {kline.length > 0 && (
           <div className="mt-4 overflow-x-auto">

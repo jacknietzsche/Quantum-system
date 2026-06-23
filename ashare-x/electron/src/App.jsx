@@ -22,15 +22,28 @@ const pageTitles = {
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar active={page} onChange={setPage} />
+      <Sidebar
+        active={page}
+        onChange={setPage}
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen((v) => !v)}
+      />
       <main className="flex-1 flex flex-col min-w-0 bg-slate-950">
-        <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center px-6">
+        <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center px-4 lg:px-6">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden mr-3 p-2 text-slate-300 hover:text-white"
+            aria-label="打开菜单"
+          >
+            ☰
+          </button>
           <h2 className="text-lg font-bold">{pageTitles[page] || page}</h2>
         </header>
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin">
           {page === 'dashboard' && <Dashboard />}
           {page === 'analysis' && <Analysis />}
           {page === 'screening' && <Screening />}
