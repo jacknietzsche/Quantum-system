@@ -26,7 +26,7 @@ export default function Sidebar({ active, onChange }) {
           <button
             key={item.id}
             onClick={() => onChange(item.id)}
-            className={`w-full text-left px-5 py-3 flex items-center gap-3 transition-colors ${
+            className={`nav-item w-full text-left px-5 py-3 flex items-center gap-3 transition-colors ${
               active === item.id
                 ? 'bg-slate-800 text-sky-400 border-l-4 border-sky-400'
                 : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'

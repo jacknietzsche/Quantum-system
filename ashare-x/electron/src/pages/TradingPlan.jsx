@@ -17,7 +17,7 @@ export default function TradingPlan() {
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xl font-bold">交易计划</h2>
+        <h2 className="text-xl font-bold">每日交易计划</h2>
         <div className="flex gap-2">
           <button className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-lg text-sm font-medium">
             ⚡ 运行每日分析
@@ -80,6 +80,11 @@ export default function TradingPlan() {
           今日尚未生成交易计划，请点击「运行每日分析」
         </div>
       )}
+
+      <div className="mt-5 bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h3 className="font-bold mb-3">历史计划</h3>
+        <div className="text-sm text-slate-500">近期历史计划将在此处展示</div>
+      </div>
     </div>
   )
 }

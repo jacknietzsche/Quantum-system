@@ -1,8 +1,13 @@
 import React, { useState } from 'react'
 import Sidebar from './components/Sidebar'
+import Analysis from './pages/Analysis'
+import Backtest from './pages/Backtest'
 import Dashboard from './pages/Dashboard'
-import TradingPlan from './pages/TradingPlan'
+import Data from './pages/Data'
+import Reports from './pages/Reports'
+import Screening from './pages/Screening'
 import Settings from './pages/Settings'
+import TradingPlan from './pages/TradingPlan'
 
 const pageTitles = {
   dashboard: '控制台',
@@ -13,15 +18,6 @@ const pageTitles = {
   data: '数据管理',
   reports: '历史报告',
   settings: '系统设置',
-}
-
-function Placeholder({ title }) {
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
-      <h2 className="text-xl font-bold mb-3">{title}</h2>
-      <p className="text-sm">React 版本该页面尚未实现，请继续使用现有 static/index.html。</p>
-    </div>
-  )
 }
 
 export default function App() {
@@ -36,11 +32,13 @@ export default function App() {
         </header>
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
           {page === 'dashboard' && <Dashboard />}
+          {page === 'analysis' && <Analysis />}
+          {page === 'screening' && <Screening />}
+          {page === 'backtest' && <Backtest />}
           {page === 'tradingplan' && <TradingPlan />}
+          {page === 'data' && <Data />}
+          {page === 'reports' && <Reports />}
           {page === 'settings' && <Settings />}
-          {['analysis', 'screening', 'backtest', 'data', 'reports'].includes(page) && (
-            <Placeholder title={pageTitles[page]} />
-          )}
         </div>
       </main>
     </div>
