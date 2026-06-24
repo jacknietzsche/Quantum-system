@@ -98,8 +98,20 @@ export default function Analysis() {
 
     es.onerror = () => {
       es.close()
-      setLoading(false)
-      setError('实时连接中断')
+      // SSE 中断后，先查询任务最终状态，避免误报
+      api
+        .get(`/analysis/${job.job_id}`)
+        .then((status) => {
+          if (status?.status === 'completed') {
+            fetchResult(job.job_id)
+          } else if (status?.status === 'failed') {
+            setError(status.error || '分析失败')
+          } else {
+            setError('实时连接中断')
+          }
+        })
+        .catch(() => setError('实时连接中断'))
+        .finally(() => setLoading(false))
     }
 
     return () => es.close()

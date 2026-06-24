@@ -35,8 +35,9 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0 bg-slate-950">
         <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center px-4 lg:px-6">
           <button
+            type="button"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden mr-3 p-2 text-slate-300 hover:text-white"
+            className="lg:hidden mr-3 p-2 text-slate-300 hover:text-white relative z-50"
             aria-label="打开菜单"
           >
             ☰

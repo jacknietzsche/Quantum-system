@@ -90,4 +90,11 @@ if static_dir.exists():
 
     @app.get("/")
     async def index():
-        return FileResponse(str(static_dir / "index.html"))
+        return FileResponse(
+            str(static_dir / "index.html"),
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )

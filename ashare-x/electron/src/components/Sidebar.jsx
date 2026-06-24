@@ -23,16 +23,26 @@ export default function Sidebar({ active, onChange, open, onToggle }) {
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 h-screen bg-slate-900 border-r border-slate-800 flex flex-col transform transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 h-screen bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200 ease-in-out ${
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
+        style={{ transform: open ? 'translateX(0)' : undefined }}
       >
-        <div className="p-5 flex items-center gap-3 border-b border-slate-800">
-          <div className="text-2xl">📈</div>
-          <div>
-            <h1 className="font-bold text-lg">AShare-X</h1>
-            <p className="text-xs text-slate-400">AI智能投研系统</p>
+        <div className="p-5 flex items-center justify-between border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">📈</div>
+            <div>
+              <h1 className="font-bold text-lg">AShare-X</h1>
+              <p className="text-xs text-slate-400">AI智能投研系统</p>
+            </div>
           </div>
+          <button
+            onClick={onToggle}
+            className="lg:hidden text-slate-400 hover:text-slate-100 text-xl leading-none"
+            aria-label="关闭菜单"
+          >
+            ✕
+          </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 scrollbar-thin">
           {navItems.map((item) => (

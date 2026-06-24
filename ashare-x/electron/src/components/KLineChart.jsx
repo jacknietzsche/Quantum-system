@@ -1,9 +1,8 @@
 import React, { useEffect, useRef } from 'react'
-import { createChart } from 'lightweight-charts'
+import { createChart, CandlestickSeries } from 'lightweight-charts'
 
 export default function KLineChart({ data, height = 360 }) {
   const chartContainerRef = useRef(null)
-  const chartRef = useRef(null)
 
   useEffect(() => {
     if (!chartContainerRef.current || !data?.length) return
@@ -22,9 +21,8 @@ export default function KLineChart({ data, height = 360 }) {
       timeScale: { borderColor: '#1e293b' },
       height,
     })
-    chartRef.current = chart
 
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries(CandlestickSeries, {
       upColor: '#10b981',
       downColor: '#f43f5e',
       borderUpColor: '#10b981',
