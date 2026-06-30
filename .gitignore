@@ -1,117 +1,101 @@
-# === 顶层 .gitignore ===
-# 包含: AShare-X 重写版, quant-agents 外部库
-# 注意: 遗留 a-share-investment-system 已废弃, 不再保留
-
-# === 废弃的遗留项目 ===
-a-share-investment-system/
-
-# === 工具配置 & 工作目录 ===
-.claude/
-.codely-cli/
-.mimocode/
-.omc/
-.workbuddy/
-.aider*
-.cursor/
-
-# === Python 缓存 ===
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.egg-info/
-.eggs/
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
 build/
+develop-eggs/
 dist/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
 
-# === 虚拟环境 ===
-.venv/
-venv/
-env/
+# Translations
+*.mo
+*.pot
 
-# === 密钥与本地配置 (永不提交) ===
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Environments
 .env
-.env.local
-*.env.local
-config.json
-config/config.local.yaml
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# === Node / Frontend ===
-node_modules/
-frontend/dist/
-electron/dist-frontend/
-electron/release/
-
-# === 数据库 & 数据缓存 ===
-data/
-*.db
-*.db-journal
-*.sqlite
-*.sqlite3
-.codegraph/
-
-# === 日志 / 报告 / 备份 ===
-*.log
-logs/
-reports/
-backups/
-runtime/
-
-# === 临时输出文件 ===
-*_output.txt
-cov*.txt
-
-# === IDE / OS ===
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
 .DS_Store
-Thumbs.db
 
-# === Build artifacts ===
-static/assets/*.js
-static/assets/*.css
+# Project specific
+logs/
+*.log
+data_cache/
+market_data_cache/
+real_data_cache/
+backtest_cache/
+backup/
+*.db
+*.db-shm
+*.db-wal
+automation_history/
+*.pkl
+*.html
+output/
 
-# === Test scripts ===
-_*.py
-scripts/
-*.tmp
-*.bak
-
-# === Ripgrep binary (Windows) ===
-ripgrep-*-x86_64-pc-windows-msvc/
-
-# === 大型二进制 / 资源文件 (外部 quant-agents 仓库的素材) ===
-*.psd
-*.mp4
-*.mov
-*.avi
-*.webm
-*.wav
-*.flac
-*.mp3
-*.ttf
-*.otf
-*.woff
-*.woff2
-*.pdf
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.bmp
-*.ico
-*.webp
-*.ipynb_checkpoints/
-public/assets/
-public/stock*
-
-# === 单独覆盖 ===
-!AGENTS.md
+# Root-level output files
+*.txt
+!requirements.txt
 !*.md
+performance_report*.json
+duplicate_files.json
+
+# OMC / WorkBuddy
+.omc/
+.workbuddy/
+.codebuddy/

@@ -1,0 +1,237 @@
+{
+  "date": "2026-04-04",
+  "buy_signals": [
+    {
+      "symbol": "603659",
+      "name": "璞泰来",
+      "grade": "C",
+      "confidence": 0.6679120798426199,
+      "score": 0.6679120798426199,
+      "current_price": 29.89,
+      "entry_price": 29.92,
+      "stop_loss": 26.11,
+      "take_profit": 35.56,
+      "target_position": 0.085,
+      "holding_period_days": 5,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "动量强劲：20日涨幅 12.3%",
+        "上升趋势明确",
+        "无见顶风险"
+      ],
+      "momentum": 0.7054365526744332,
+      "trend": 1.0
+    },
+    {
+      "symbol": "301081",
+      "name": "严牌股份",
+      "grade": "B",
+      "confidence": 0.7023111265505979,
+      "score": 0.7023111265505979,
+      "current_price": 14.84,
+      "entry_price": 14.85,
+      "stop_loss": 12.79,
+      "take_profit": 17.91,
+      "target_position": 0.13,
+      "holding_period_days": 5,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "上升趋势明确",
+        "量化评分 0.70"
+      ],
+      "momentum": 0.6586715867158672,
+      "trend": 1.0
+    },
+    {
+      "symbol": "000045",
+      "name": "深纺织Ａ",
+      "grade": "C",
+      "confidence": 0.6441574199004411,
+      "score": 0.6441574199004411,
+      "current_price": 12.2,
+      "entry_price": 12.21,
+      "stop_loss": 10.64,
+      "take_profit": 14.54,
+      "target_position": 0.085,
+      "holding_period_days": 5,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "上升趋势明确",
+        "无见顶风险",
+        "量化评分 0.64"
+      ],
+      "momentum": 0.4243609806990089,
+      "trend": 1.0
+    },
+    {
+      "symbol": "603016",
+      "name": "新宏泰",
+      "grade": "A",
+      "confidence": 0.9210079999999999,
+      "score": 0.8372799999999999,
+      "current_price": 45.99,
+      "entry_price": 46.04,
+      "stop_loss": 38.36,
+      "take_profit": 57.44,
+      "target_position": 0.15,
+      "holding_period_days": 9,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "动量强劲：20日涨幅 38.7%",
+        "上升趋势明确",
+        "无见顶风险"
+      ],
+      "momentum": 1.0,
+      "trend": 1.0
+    },
+    {
+      "symbol": "300879",
+      "name": "大叶股份",
+      "grade": "C",
+      "confidence": 0.6363620794983504,
+      "score": 0.6363620794983504,
+      "current_price": 24.14,
+      "entry_price": 24.16,
+      "stop_loss": 20.65,
+      "take_profit": 29.37,
+      "target_position": 0.084,
+      "holding_period_days": 5,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "上升趋势明确",
+        "无见顶风险",
+        "量化评分 0.64"
+      ],
+      "momentum": 0.538135593220339,
+      "trend": 1.0
+    },
+    {
+      "symbol": "688069",
+      "name": "德林海",
+      "grade": "B",
+      "confidence": 0.7502280825958701,
+      "score": 0.7502280825958701,
+      "current_price": 30.85,
+      "entry_price": 30.88,
+      "stop_loss": 27.69,
+      "take_profit": 35.59,
+      "target_position": 0.132,
+      "holding_period_days": 7,
+      "risk_level": "LOW",
+      "reasons": [
+        "上升趋势明确",
+        "无见顶风险",
+        "量化评分 0.75"
+      ],
+      "momentum": 0.6533923303834809,
+      "trend": 1.0
+    },
+    {
+      "symbol": "300939",
+      "name": "秋田微",
+      "grade": "D",
+      "confidence": 0.5860608029231679,
+      "score": 0.48838400243597324,
+      "current_price": 36.18,
+      "entry_price": 36.22,
+      "stop_loss": 29.72,
+      "take_profit": 45.87,
+      "target_position": 0.052,
+      "holding_period_days": 5,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "无见顶风险",
+        "量化评分 0.49"
+      ],
+      "momentum": 0.4222661396574439,
+      "trend": 0.5
+    },
+    {
+      "symbol": "301365",
+      "name": "矩阵股份",
+      "grade": "B",
+      "confidence": 0.7127997063513452,
+      "score": 0.7127997063513452,
+      "current_price": 29.0,
+      "entry_price": 29.03,
+      "stop_loss": 25.14,
+      "take_profit": 34.79,
+      "target_position": 0.13,
+      "holding_period_days": 5,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "动量强劲：20日涨幅 14.4%",
+        "上升趋势明确",
+        "无见顶风险"
+      ],
+      "momentum": 0.7399737015121628,
+      "trend": 1.0
+    },
+    {
+      "symbol": "688266",
+      "name": "泽璟制药",
+      "grade": "B",
+      "confidence": 0.7648964675022282,
+      "score": 0.7648964675022282,
+      "current_price": 99.5,
+      "entry_price": 99.6,
+      "stop_loss": 88.37,
+      "take_profit": 116.19,
+      "target_position": 0.133,
+      "holding_period_days": 9,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "动量强劲：20日涨幅 21.1%",
+        "上升趋势明确",
+        "无见顶风险"
+      ],
+      "momentum": 0.8519983769527288,
+      "trend": 1.0
+    },
+    {
+      "symbol": "603105",
+      "name": "芯能科技",
+      "grade": "D",
+      "confidence": 0.5910823891522498,
+      "score": 0.49256865762687485,
+      "current_price": 10.27,
+      "entry_price": 10.28,
+      "stop_loss": 8.25,
+      "take_profit": 13.3,
+      "target_position": 0.052,
+      "holding_period_days": 5,
+      "risk_level": "MEDIUM",
+      "reasons": [
+        "量化评分 0.49"
+      ],
+      "momentum": 0.48871695680206323,
+      "trend": 0.5
+    }
+  ],
+  "sell_signals": [],
+  "holdings": [],
+  "snapshots": [
+    {
+      "date": "2026-04-04",
+      "total_value": 100000,
+      "cash": 20000.0,
+      "stock_value": 80000.0,
+      "positions": 0,
+      "daily_return": -0.9,
+      "cumulative_return": 0.0,
+      "max_drawdown": -1.28
+    }
+  ],
+  "stats": {
+    "total_trades": 0,
+    "winning_trades": 0,
+    "losing_trades": 0,
+    "total_return": 0.0,
+    "max_drawdown": -2.5,
+    "win_rate": 60.0,
+    "avg_holding_days": 5,
+    "initial_cash": 100000,
+    "current_cash": 20000.0,
+    "position_count": 0
+  }
+}
