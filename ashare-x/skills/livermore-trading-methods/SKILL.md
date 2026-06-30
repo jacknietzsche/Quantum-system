@@ -2,8 +2,11 @@
 name: livermore-trading-methods
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - market_analyst
+  - trader
+  - bull_researcher
+max_tokens: 3000
+priority: 5
 description: 股票大作手操盘术 - 可执行决策技能手册
 triggers:
   - "利弗莫尔"

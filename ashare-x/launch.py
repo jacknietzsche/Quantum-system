@@ -15,7 +15,7 @@ def main():
     # 启动后端
     print("启动API服务器...")
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "server:app", "--host", "127.0.0.1", "--port", "8765"],
+        [sys.executable, "-m", "uvicorn", "server:app", "--host", "127.0.0.1", "--port", "8766"],
         cwd=str(Path(__file__).parent),
     )
 
@@ -24,7 +24,7 @@ def main():
 
     # 打开浏览器
     print("打开浏览器...")
-    webbrowser.open("http://127.0.0.1:8765")
+    webbrowser.open("http://127.0.0.1:8766")
 
     try:
         proc.wait()

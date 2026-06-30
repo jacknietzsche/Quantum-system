@@ -2,8 +2,10 @@
 name: t-plus-0-strategy
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - trader
+  - aggressive_analyst
+max_tokens: 3000
+priority: 5
 description: 股票"T+0"操作策略 - 可执行决策技能手册
 triggers:
   - "T+0"

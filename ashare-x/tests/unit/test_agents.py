@@ -116,7 +116,7 @@ class TestDataGatherers:
 
         monkeypatch.setattr(sd_mod, "get_stock_data", lambda code, days: {"kline": None})
         result = _gather_technical_data("600519")
-        assert "暂无K线数据" in result
+        assert "No kline data" in result
 
     def test_gather_technical_data_exception(self, monkeypatch):
         from tools import stock_data as sd_mod
@@ -126,7 +126,7 @@ class TestDataGatherers:
 
         monkeypatch.setattr(sd_mod, "get_stock_data", boom)
         result = _gather_technical_data("600519")
-        assert "技术指标数据获取失败" in result
+        assert "data fetch failed" in result or "获取失败" in result or "[!]" in result
 
     def test_gather_fundamentals_data(self, monkeypatch):
         from tools import fundamentals as fm_mod

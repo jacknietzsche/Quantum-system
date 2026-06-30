@@ -50,14 +50,13 @@ def _fetch_kline_df(code: str, days: int = 250) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def _fetch_benchmark(days: int = 250) -> pd.DataFrame:
-    """获取沪深300基准数据。"""
+def _fetch_benchmark(benchmark_code: str = "000300", days: int = 250) -> pd.DataFrame:
+    """获取基准数据。"""
     try:
         from providers.data_bus import DatabaseFirstDataBus
 
         bus = DatabaseFirstDataBus()
-        # 沪深300代码: 000300
-        raw = bus.get_kline("000300", days=days)
+        raw = bus.get_kline(benchmark_code, days=days)
         if not raw:
             # 尝试上证指数
             raw = bus.get_kline("000001", days=days)
@@ -141,13 +140,14 @@ class VectorbtBacktest:
                 returns = pf.total_return()
                 stats = pf.stats()
 
+                total_trades = pf.trades.count()
                 per_stock_results[code] = {
                     "total_return": f"{returns * 100:.2f}%",
                     "sharpe": float(stats.get("Sharpe Ratio", 0)) if isinstance(stats, dict) else 0,
                     "max_drawdown": f"{pf.max_drawdown() * 100:.2f}%",
-                    "total_trades": int(pf.trades.count),
+                    "total_trades": int(total_trades),
                     "win_rate": (
-                        f"{pf.trades.win_rate() * 100:.1f}%" if len(pf.trades) > 0 else "N/A"
+                        f"{pf.trades.win_rate() * 100:.1f}%" if total_trades > 0 else "N/A"
                     ),
                 }
 
@@ -161,7 +161,7 @@ class VectorbtBacktest:
                 continue
 
         # 基准比较
-        bench_df = _fetch_benchmark(days=days)
+        bench_df = _fetch_benchmark(benchmark_code=benchmark_code, days=days)
         bench_return = 0.0
         if not bench_df.empty and len(bench_df) > 1:
             bench_return = (bench_df["Close"].iloc[-1] / bench_df["Close"].iloc[0] - 1) * 100

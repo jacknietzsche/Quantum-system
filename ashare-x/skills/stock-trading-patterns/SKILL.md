@@ -2,8 +2,10 @@
 name: stock-trading-patterns
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - market_analyst
+  - trader
+max_tokens: 3000
+priority: 5
 description: 股票买卖定式 - 可执行决策技能手册
 triggers:
   - "买卖定式"

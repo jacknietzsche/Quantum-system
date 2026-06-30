@@ -29,7 +29,7 @@ class StockCodeNormalizer:
             return f"sh.{code}"
         if code.startswith(("0", "3")):
             return f"sz.{code}"
-        if code.startswith(("4", "8")):
+        if code.startswith(("4", "8", "92")):
             return f"bj.{code}"
         return f"sh.{code}"
 
@@ -51,6 +51,6 @@ class StockCodeNormalizer:
             return "SH"
         if code.startswith(("0", "3")):
             return "SZ"
-        if code.startswith(("4", "8")):
+        if code.startswith(("4", "8", "92")):
             return "BJ"
         return "SH"

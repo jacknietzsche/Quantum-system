@@ -183,13 +183,14 @@ async def send_plan_email(req: SendEmailRequest):
 
 
 async def _run_plan(job_id: str, fast_mode: bool):
-    """后台执行每日计划生成。"""
+    """后台执行每日计划生成（在线程池中运行，避免阻塞事件循环）。"""
     job = _plan_jobs[job_id]
     try:
         from services.daily_plan import DailyPlanGenerator
 
+        loop = asyncio.get_event_loop()
         gen = DailyPlanGenerator()
-        plan = gen.generate(fast_mode=fast_mode)
+        plan = await loop.run_in_executor(None, gen.generate, fast_mode)
         job["result"] = plan
         job["status"] = "completed"
     except Exception as e:

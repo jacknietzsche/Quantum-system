@@ -321,21 +321,34 @@ def calculate_three_stage_dcf(
 
     stage1_growth = min(stage1_growth_cap, max(stage1_floor, earnings_growth_3y * 0.7))
     stage2_growth = stage1_growth * 0.5
+    stage2_years = stage1_years  # Stage 2 same duration as Stage 1
 
+    # Stage 1: high growth period
     stage1_pv = sum(
         owner_earnings * (1 + stage1_growth) ** y / (1 + discount_rate) ** y
         for y in range(1, stage1_years + 1)
     )
-    final_oe = owner_earnings * (1 + stage1_growth) ** stage1_years
-    terminal_value = final_oe * (1 + terminal_growth) / (discount_rate - terminal_growth)
-    terminal_pv = terminal_value / (1 + discount_rate) ** stage1_years
+    # Owner earnings at end of Stage 1
+    oe_end_stage1 = owner_earnings * (1 + stage1_growth) ** stage1_years
 
-    total_iv = (stage1_pv + terminal_pv) * (1 - safety_margin)
+    # Stage 2: declining growth period
+    stage2_pv = sum(
+        oe_end_stage1 * (1 + stage2_growth) ** y / (1 + discount_rate) ** (stage1_years + y)
+        for y in range(1, stage2_years + 1)
+    )
+    # Owner earnings at end of Stage 2
+    oe_end_stage2 = oe_end_stage1 * (1 + stage2_growth) ** stage2_years
+
+    # Terminal value after Stage 2
+    terminal_value = oe_end_stage2 * (1 + terminal_growth) / (discount_rate - terminal_growth)
+    terminal_pv = terminal_value / (1 + discount_rate) ** (stage1_years + stage2_years)
+
+    total_iv = (stage1_pv + stage2_pv + terminal_pv) * (1 - safety_margin)
     iv_per_share = total_iv / shares_outstanding
 
     return {
         "intrinsic_value": round(iv_per_share, 2),
-        "raw_iv": round((stage1_pv + terminal_pv) / shares_outstanding, 2),
+        "raw_iv": round((stage1_pv + stage2_pv + terminal_pv) / shares_outstanding, 2),
         "owner_earnings": round(owner_earnings, 0),
         "assumptions": {
             "stage1_growth": round(stage1_growth, 3),

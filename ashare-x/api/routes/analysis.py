@@ -7,13 +7,14 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger("ashare-x.api.analysis")
 
@@ -21,7 +22,8 @@ router = APIRouter(prefix="/api", tags=["analysis"])
 
 
 class AnalysisRequest(BaseModel):
-    ticker: str
+    ticker: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$",
+                        description="6位A股代码，如 600519")
     fast_mode: bool = False
     enable_masters: bool = False
 
@@ -34,6 +36,13 @@ class AnalysisJob(BaseModel):
 
 _jobs: dict[str, dict] = {}
 _background_tasks: set[asyncio.Task] = set()
+
+# 并发分析任务上限，防止事件循环/线程池资源耗尽导致进程崩溃
+MAX_CONCURRENT_ANALYSES = 2
+
+
+def _count_running_jobs() -> int:
+    return sum(1 for j in _jobs.values() if j.get("status") == "running")
 
 
 AGENT_LABELS = {
@@ -57,6 +66,12 @@ AGENT_LABELS = {
 @router.post("/analysis", response_model=AnalysisJob)
 async def start_analysis(req: AnalysisRequest):
     """启动个股分析。"""
+    # 并发上限保护，防止进程崩溃
+    if _count_running_jobs() >= MAX_CONCURRENT_ANALYSES:
+        raise HTTPException(
+            429,
+            f"已有 {_count_running_jobs()} 个分析任务在运行，最多并发 {MAX_CONCURRENT_ANALYSES} 个，请稍后再试",
+        )
     job_id = str(uuid.uuid4())[:8]
     _jobs[job_id] = {
         "job_id": job_id,
@@ -80,7 +95,9 @@ async def get_analysis(job_id: str):
     """查询分析状态。"""
     if job_id not in _jobs:
         raise HTTPException(404, "Job not found")
-    return _jobs[job_id]
+    job = _jobs[job_id]
+    # Exclude log_queue (asyncio.Queue is not JSON serializable)
+    return {k: v for k, v in job.items() if k != "log_queue"}
 
 
 @router.delete("/analysis/{job_id}")
@@ -108,14 +125,15 @@ async def stream_analysis(job_id: str):
                 break
 
             # 发送进度更新
-            if job["progress"] != last_progress:
+            current_progress = min(max(job["progress"], 0), 100)
+            if current_progress != last_progress:
                 progress_data = {
-                    "progress": job["progress"],
+                    "progress": current_progress,
                     "agent": job.get("current_agent", ""),
                     "status": job["status"],
                 }
                 yield f"event: progress\ndata: {json.dumps(progress_data)}\n\n"
-                last_progress = job["progress"]
+                last_progress = current_progress
 
             # 发送Agent状态变更
             for agent, status in job.get("agents_status", {}).items():
@@ -163,6 +181,21 @@ def _now() -> str:
     from datetime import datetime
 
     return datetime.now().strftime("%H:%M:%S")
+
+
+async def _animate_progress(job: dict):
+    """在LangGraph同步执行期间，定期推进进度条，避免前端卡死。"""
+    try:
+        while job.get("status") == "running":
+            await asyncio.sleep(5)
+            if job.get("status") != "running":
+                break
+            # Never exceed 85 during animation; clamp to [0, 85]
+            current = job.get("progress", 0)
+            if current < 85:
+                job["progress"] = min(current + 5, 85)
+    except asyncio.CancelledError:
+        pass
 
 
 async def _run_analysis(
@@ -226,15 +259,23 @@ async def _run_analysis(
         job["progress"] = 5
         _log(job, "info", "市场分析师开始分析...")
 
+        # 启动进度动画任务，避免前端长时间停留在5%
+        progress_task = asyncio.create_task(_animate_progress(job))
+
         # 执行工作流（在线程池中运行同步代码，thread_id用于checkpointer持久化）
         thread_config = {"configurable": {"thread_id": job_id}}
         loop = asyncio.get_event_loop()
-        final_state = await loop.run_in_executor(
-            None, lambda: graph.invoke(state, config=thread_config)
-        )
+        try:
+            final_state = await loop.run_in_executor(
+                None, lambda: graph.invoke(state, config=thread_config)
+            )
+        finally:
+            progress_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await progress_task
 
         # 5. 解析结果
-        job["progress"] = 90
+        job["progress"] = min(90, 100)
         _log(job, "info", "分析完成，解析结果...")
 
         # 更新所有Agent状态为完成
@@ -337,15 +378,34 @@ def _parse_analysis_result(final_state: dict, ticker: str, job_id: str = "") -> 
 
     # 记录决策日志
     try:
+        from datetime import date as _date
+
         from memory.decision_log import DecisionLog
 
         log = DecisionLog()
         log.add_entry(
             ticker=ticker,
+            date=result.get("date") or _date.today().isoformat(),
             action=result.get("action", "Hold"),
             confidence=result.get("confidence", 70),
-            reasoning=result.get("thesis", ""),
+            thesis=result.get("thesis", ""),
         )
+
+        # 反思：检查该ticker的历史决策，如果有旧决策且当前价格已知，更新结果
+        history = log.get_history(ticker, limit=3)
+        if len(history) > 1:
+            prev = history[1]  # 第二条是上一次决策
+            if prev.get("entry_price") and result.get("entry_price"):
+                prev_entry = prev["entry_price"]
+                current_price = result.get("entry_price", 0)
+                if prev_entry > 0:
+                    profit = current_price - prev_entry
+                    return_pct = (profit / prev_entry) * 100
+                    log.update_outcome(
+                        entry_id=prev["id"],
+                        profit=round(profit, 2),
+                        return_pct=round(return_pct, 2),
+                    )
     except Exception as e:
         logger.warning("记录决策日志失败: %s", e)
 

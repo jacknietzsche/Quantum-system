@@ -29,8 +29,11 @@ def get_global_news() -> list[dict]:
 
     try:
         import akshare as ak
+        from datetime import datetime, timedelta
 
-        df = ak.news_cctv(date=None)
+        # akshare 的 news_cctv 需要 YYYYMMDD 格式日期，留 None 在部分版本会报错
+        date_str = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
+        df = ak.news_cctv(date=date_str)
         if df is not None and not df.empty:
             for _, row in df.head(20).iterrows():
                 news_list.append({

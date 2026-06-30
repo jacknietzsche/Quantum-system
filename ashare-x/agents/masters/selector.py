@@ -63,7 +63,7 @@ def select_masters(stock_profile: dict) -> list[str]:
     if volatility > 0.35:
         scores["wood"] += 1
 
-    # 达利欧: 中等波动 + 稳定增长  # noqa: ERA001
+    # 德鲁肯米勒: 中等波动 + 稳定增长  # noqa: ERA001
     scores["druckenmiller"] = 0
     if 0.2 < volatility < 0.4:
         scores["druckenmiller"] += 2

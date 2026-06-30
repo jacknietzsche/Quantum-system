@@ -2,8 +2,10 @@
 name: limit-up-strategy
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - market_analyst
+  - trader
+max_tokens: 3000
+priority: 5
 description: 涨停板短期交易策略，包含情绪周期、龙虎榜、炸板风险、连板梯队等核心判断框架
 triggers:
   - "涨停"

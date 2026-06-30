@@ -23,6 +23,13 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
+
+# 加载项目根目录 .env（如果不存在则静默跳过）
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_ENV_PATH = _PROJECT_ROOT / ".env"
+if _ENV_PATH.exists():
+    load_dotenv(dotenv_path=_ENV_PATH, override=True)
 
 # 配置模块日志
 logger = logging.getLogger("ashare-x.core.config")

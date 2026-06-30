@@ -118,7 +118,9 @@ class TestKline:
         conn.commit()
         conn.close()
 
-        data = tmp_db.get_kline("600519")
+        # Mock incremental fetch to return None (no new data from API)
+        with patch.object(tmp_db, "_fetch_kline_incremental", return_value=None):
+            data = tmp_db.get_kline("600519")
         assert data is not None
         assert len(data) == 1
         assert data[0]["close"] == 1.5

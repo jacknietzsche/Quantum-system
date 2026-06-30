@@ -2,8 +2,11 @@
 name: fooled-by-randomness-book
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - bear_researcher
+  - conservative_analyst
+  - portfolio_manager
+max_tokens: 3000
+priority: 5
 description: 随机漫步的傻瓜 - 可执行决策技能手册
 triggers:
   - "随机"

@@ -15,6 +15,9 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import threading
+from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -28,9 +31,9 @@ _STALE_THRESHOLD = {
     "fundamentals": 3600 * 12, # 基本面12小时
     "financial": 3600 * 24,   # 财务报表24小时
     "news": 3600 * 2,         # 新闻2小时
-    "sentiment": 1800,        # 情绪数据30分钟
-    "market_breadth": 1800,   # 市场广度30分钟
-    "market_overview": 1800,  # 市场概览30分钟
+    "sentiment": 1800,         # 情绪数据30分钟
+    "market_breadth": 14400,   # 市场广度4小时（日频交易无需更频繁）
+    "market_overview": 14400,  # 市场概览4小时（避免API超时拖慢再平衡）
 }
 
 
@@ -44,6 +47,20 @@ def _safe_float(value) -> float | None:
         return None
 
 
+def _run_with_timeout(fn, timeout: float, *args, **kwargs):
+    """在线程池中执行同步函数并设置超时，避免外部API挂起。"""
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(fn, *args, **kwargs)
+    try:
+        return future.result(timeout=timeout)
+    except FutureTimeoutError:
+        logger.warning("数据获取超时 (%.1fs): %s", timeout, fn.__name__)
+        raise
+    finally:
+        # 不等待后台线程结束，避免阻塞主流程
+        executor.shutdown(wait=False)
+
+
 class DatabaseFirstDataBus:
     """数据库优先的数据总线。"""
 
@@ -53,15 +70,24 @@ class DatabaseFirstDataBus:
     _spot_cache_ttl = 300  # 5分钟
     _spot_cache_failed = False  # 标记全量快照API失败，避免短时间内重复尝试
     _spot_cache_fail_time: datetime | None = None
+    _spot_cache_lock = threading.Lock()  # 保护spot缓存读写
 
     def __init__(self, db_path: str = "runtime/investment.db"):
         self.db_path = db_path
+        self._adapter_local = threading.local()
         self._ensure_db()
+
+    def _connect(self) -> sqlite3.Connection:
+        """创建带WAL模式+忙超时的DB连接。"""
+        conn = sqlite3.connect(self.db_path, timeout=5.0)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        return conn
 
     def _ensure_db(self):
         """确保数据库和表存在。"""
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         conn.execute("""
             CREATE TABLE IF NOT EXISTS kline_daily (
                 stock_code TEXT, trade_date TEXT, open REAL, high REAL, low REAL,
@@ -179,22 +205,37 @@ class DatabaseFirstDataBus:
 
     def get_kline(self, code: str, days: int = 365) -> list[dict] | None:
         """
-        获取日K线数据（数据库优先）。
+        获取日K线数据（数据库优先 + 增量更新）。
         1. 查询数据库
-        2. 如果无数据，从API获取
-        3. 保存到数据库
+        2. 如果有数据但不是最新，只从API获取缺失的日期
+        3. 如果无数据，从API获取全部
         4. 返回数据
         """
         # Step 1: 查询数据库
         db_data = self._query_kline(code, days)
         if db_data and len(db_data) > 0:
-            logger.info("K线从数据库获取: %s, %d条", code, len(db_data))
+            # 检查是否过期（最后一条日期是否在过期阈值内）
+            last_date = db_data[-1].get("trade_date", "")
+            today = datetime.now().strftime("%Y-%m-%d")
+            if last_date >= today:
+                logger.info("K线从数据库获取（最新）: %s, %d条", code, len(db_data))
+                return db_data
+            # 数据过期，尝试增量更新
+            incremental = self._fetch_kline_incremental(code, last_date)
+            if incremental:
+                self._save_kline(code, incremental)
+                # 重新查询完整数据
+                db_data = self._query_kline(code, days)
+                if db_data:
+                    logger.info("K线增量更新: %s, +%d条, 共%d条", code, len(incremental), len(db_data))
+                    return db_data
+            # 增量更新失败，返回旧数据
+            logger.info("K线从数据库获取（旧数据）: %s, %d条", code, len(db_data))
             return db_data
 
-        # Step 2: 从API获取
+        # Step 2: 从API全量获取
         api_data = self._fetch_kline_from_api(code, days)
         if api_data:
-            # Step 3: 保存到数据库
             saved = self._save_kline(code, api_data)
             logger.info("K线从API获取并保存: %s, %d条/%d条入库", code, len(api_data), saved)
             return api_data
@@ -202,10 +243,24 @@ class DatabaseFirstDataBus:
         logger.warning("无法获取K线数据: %s", code)
         return None
 
+    def _fetch_kline_incremental(self, code: str, last_date: str) -> list[dict] | None:
+        """只获取last_date之后的新K线数据。"""
+        try:
+            from datetime import datetime as dt
+
+            start = dt.strptime(last_date, "%Y-%m-%d")
+            days_since = (dt.now() - start).days + 1
+            if days_since <= 0:
+                return None
+            return self._fetch_kline_from_api(code, days_since)
+        except Exception as e:
+            logger.debug("增量获取K线失败 %s: %s", code, e)
+            return None
+
     def _query_kline(self, code: str, days: int) -> list[dict] | None:
         """从数据库查询K线。"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             cursor = conn.execute(
                 "SELECT stock_code, trade_date, open, high, low, close, volume, amount "
@@ -234,8 +289,11 @@ class DatabaseFirstDataBus:
             return None
 
     def _fetch_kline_from_api(self, code: str, days: int) -> list[dict] | None:
-        """从API获取K线（按优先级尝试）。"""
-        adapters = self._load_adapters()
+        """从API获取K线（按K线优先级尝试，新浪优先）。"""
+        adapters = sorted(
+            self._load_adapters(),
+            key=lambda a: getattr(a, "kline_priority", getattr(a, "priority", 99)),
+        )
         for adapter in adapters:
             try:
                 data = adapter.fetch_kline(code, days)
@@ -248,10 +306,15 @@ class DatabaseFirstDataBus:
 
     def _save_kline(self, code: str, data: list[dict]) -> int:
         """保存K线到数据库（增量）。"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         count = 0
         for row in data:
             try:
+                volume = row.get("volume")
+                close = row.get("close")
+                amount = row.get("amount")
+                if amount is None or amount == 0:
+                    amount = (volume or 0) * (close or 0)
                 conn.execute(
                     "INSERT OR IGNORE INTO kline_daily "
                     "(stock_code, trade_date, open, high, low, close, volume, amount) "
@@ -262,9 +325,9 @@ class DatabaseFirstDataBus:
                         row.get("open"),
                         row.get("high"),
                         row.get("low"),
-                        row.get("close"),
-                        row.get("volume"),
-                        row.get("amount"),
+                        close,
+                        volume,
+                        amount,
                     ),
                 )
                 count += 1
@@ -319,7 +382,7 @@ class DatabaseFirstDataBus:
     def _query_stock_info(self, code: str) -> dict | None:
         """从数据库查询股票信息（返回完整字段）。"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             cursor = conn.execute("SELECT * FROM stock_info WHERE stock_code=?", (code,))
             row = cursor.fetchone()
             conn.close()
@@ -350,16 +413,32 @@ class DatabaseFirstDataBus:
             return None
 
     def _save_stock_info(self, code: str, data: dict):
-        """保存股票信息到数据库。"""
-        conn = sqlite3.connect(self.db_path)
+        """保存股票信息到数据库（保留已有category/industry字段）。"""
+        conn = self._connect()
+        # 先读取已有的category和industry（INSERT OR REPLACE会清空未列出的列）
+        existing_cat = ""
+        existing_ind = ""
+        try:
+            cur = conn.execute("SELECT category, industry FROM stock_info WHERE stock_code=?", (code,))
+            row = cur.fetchone()
+            if row:
+                existing_cat = row[0] or ""
+                existing_ind = row[1] or ""
+        except Exception:
+            pass
+        # 优先使用data中的值，其次保留已有值
+        industry_val = data.get("industry") or existing_ind
+        category_val = data.get("category") or existing_cat
         conn.execute(
             "INSERT OR REPLACE INTO stock_info "
-            "(stock_code, stock_name, pe_ratio, pb_ratio, roe, latest_price, "
+            "(stock_code, stock_name, category, industry, pe_ratio, pb_ratio, roe, latest_price, "
             "change_pct, volume, amount, turnover_rate, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 code,
                 data.get("stock_name", ""),
+                category_val,
+                industry_val,
                 data.get("pe_ratio") or 0,
                 data.get("pb_ratio") or 0,
                 data.get("roe") or 0,
@@ -457,7 +536,7 @@ class DatabaseFirstDataBus:
     def _query_fund_metrics(self, code: str) -> list[dict]:
         """从数据库查询财务指标历史。"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             cursor = conn.execute(
                 "SELECT * FROM fund_metric_hist WHERE stock_code=? "
                 "ORDER BY report_period DESC",
@@ -596,7 +675,7 @@ class DatabaseFirstDataBus:
 
         # 保存到 fund_metric_hist
         if data.get("report_period"):
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             try:
                 conn.execute(
                     "INSERT OR REPLACE INTO fund_metric_hist "
@@ -669,7 +748,7 @@ class DatabaseFirstDataBus:
         if api_data:
             # Step 3: 存入数据库
             if api_data.get("report_period"):
-                conn = sqlite3.connect(self.db_path)
+                conn = self._connect()
                 try:
                     conn.execute(
                         "INSERT OR REPLACE INTO fund_metric_hist "
@@ -764,7 +843,7 @@ class DatabaseFirstDataBus:
     def _query_news(self, code: str, days: int) -> list[dict]:
         """从数据库查询新闻。"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             cursor = conn.execute(
                 "SELECT title, content, source, news_date, url "
@@ -826,7 +905,7 @@ class DatabaseFirstDataBus:
         """保存新闻到数据库。"""
         import contextlib
 
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         for n in news_list:
             with contextlib.suppress(Exception):
                 conn.execute(
@@ -1004,17 +1083,21 @@ class DatabaseFirstDataBus:
             logger.info("市场广度使用数据库旧数据")
             return snapshot["data"]
 
-        return {
+        # 没有任何数据时保存默认快照，避免每次调用都触发超时API
+        default_breadth = {
             "total": 0, "up": 0, "down": 0, "flat": 0,
             "limit_up": 0, "limit_down": 0, "up_ratio": 0.0,
         }
+        self._save_snapshot("market_breadth", default_breadth)
+        logger.warning("市场广度无可用数据，已保存默认快照")
+        return default_breadth
 
     def _fetch_market_breadth_from_api(self) -> dict | None:
-        """从AKShare获取市场广度。"""
+        """从AKShare获取市场广度（带2秒超时，避免同步API挂起再平衡）。"""
         try:
             import akshare as ak
 
-            spot = ak.stock_zh_a_spot_em()
+            spot = _run_with_timeout(ak.stock_zh_a_spot_em, 10.0)
             if spot is not None and not spot.empty and "涨跌幅" in spot.columns:
                 pct = spot["涨跌幅"]
                 breadth = {
@@ -1042,8 +1125,9 @@ class DatabaseFirstDataBus:
                         "pb_ratio": _safe_float(r.get("市净率")),
                         "turnover_rate": _safe_float(r.get("换手率")),
                     }
-                DatabaseFirstDataBus._spot_cache = cache
-                DatabaseFirstDataBus._spot_cache_time = datetime.now()
+                with DatabaseFirstDataBus._spot_cache_lock:
+                    DatabaseFirstDataBus._spot_cache = cache
+                    DatabaseFirstDataBus._spot_cache_time = datetime.now()
                 logger.info("全量快照缓存已更新（市场广度）: %d只股票", len(cache))
                 return breadth
         except ImportError:
@@ -1084,16 +1168,20 @@ class DatabaseFirstDataBus:
             logger.info("市场概览使用数据库旧数据")
             return snapshot["data"]
 
-        return {
+        # 没有任何数据时保存默认快照，避免每次调用都触发超时API
+        default_overview = {
             "indices": {},
             "market_state": "NEUTRAL",
             "north_flow": 0,
             "advance_count": 0,
             "decline_count": 0,
         }
+        self._save_snapshot("market_overview", default_overview)
+        logger.warning("市场概览无可用数据，已保存默认快照")
+        return default_overview
 
     def _fetch_market_overview_from_api(self) -> dict | None:
-        """从AKShare获取市场概览。"""
+        """从AKShare获取市场概览（单源5秒超时，优先复用缓存避免重复API）。"""
         result: dict = {
             "indices": {},
             "market_state": "NEUTRAL",
@@ -1105,78 +1193,129 @@ class DatabaseFirstDataBus:
         try:
             import akshare as ak
 
-            # 1. 指数实时行情
-            try:
-                index_df = ak.stock_zh_index_spot_em(symbol="上证系列指数")
-                if index_df is not None and not index_df.empty:
-                    for _, row in index_df.iterrows():
-                        name = str(row.get("名称", ""))
-                        if "上证指数" in name:
-                            result["indices"]["sh"] = {
-                                "name": name,
-                                "price": _safe_float(row.get("最新价")),
-                                "change_pct": _safe_float(row.get("涨跌幅")),
-                            }
-                            break
-            except Exception as e:
-                logger.debug("获取上证指数失败: %s", e)
+            def _fetch_sh_index():
+                try:
+                    df = _run_with_timeout(
+                        ak.stock_zh_index_spot_em, 2.0, symbol="上证系列指数"
+                    )
+                    if df is not None and not df.empty:
+                        for _, row in df.iterrows():
+                            name = str(row.get("名称", ""))
+                            if "上证指数" in name:
+                                return {
+                                    "name": name,
+                                    "price": _safe_float(row.get("最新价")),
+                                    "change_pct": _safe_float(row.get("涨跌幅")),
+                                }
+                except Exception as e:
+                    logger.debug("获取上证指数失败: %s", e)
+                return None
 
-            try:
-                index_df = ak.stock_zh_index_spot_em(symbol="深证系列指数")
-                if index_df is not None and not index_df.empty:
-                    for _, row in index_df.iterrows():
-                        name = str(row.get("名称", ""))
-                        if "深证成指" in name:
-                            result["indices"]["sz"] = {
-                                "name": name,
-                                "price": _safe_float(row.get("最新价")),
-                                "change_pct": _safe_float(row.get("涨跌幅")),
-                            }
-                            break
-                        if "创业板指" in name:
-                            result["indices"]["cyb"] = {
-                                "name": name,
-                                "price": _safe_float(row.get("最新价")),
-                                "change_pct": _safe_float(row.get("涨跌幅")),
-                            }
-            except Exception as e:
-                logger.debug("获取深证指数失败: %s", e)
+            def _fetch_sz_index():
+                try:
+                    df = _run_with_timeout(
+                        ak.stock_zh_index_spot_em, 2.0, symbol="深证系列指数"
+                    )
+                    if df is not None and not df.empty:
+                        for _, row in df.iterrows():
+                            name = str(row.get("名称", ""))
+                            if "深证成指" in name:
+                                return {
+                                    "sz": {
+                                        "name": name,
+                                        "price": _safe_float(row.get("最新价")),
+                                        "change_pct": _safe_float(row.get("涨跌幅")),
+                                    }
+                                }
+                            if "创业板指" in name:
+                                return {
+                                    "cyb": {
+                                        "name": name,
+                                        "price": _safe_float(row.get("最新价")),
+                                        "change_pct": _safe_float(row.get("涨跌幅")),
+                                    }
+                                }
+                except Exception as e:
+                    logger.debug("获取深证指数失败: %s", e)
+                return None
 
-            # 2. 涨跌家数
-            breadth = self.get_market_breadth()
+            def _fetch_north_flow():
+                """获取当日北向资金净流入（禁用历史接口，避免内部循环拖垮总超时）。"""
+                try:
+                    fn = getattr(ak, "stock_hsgt_fund_flow_summary_em", None)
+                    if fn:
+                        df = _run_with_timeout(fn, 5.0)
+                        if df is not None and not df.empty:
+                            latest = df.iloc[-1]
+                            return _safe_float(
+                                latest.get("当日成交净买额")
+                                or latest.get("沪股通净买额")
+                                or 0
+                            ) or 0
+                except Exception as e:
+                    logger.debug("获取北向资金失败: %s", e)
+                return 0
+
+            # 优先复用全量快照缓存计算市场广度，避免重复调用 stock_zh_a_spot_em
+            breadth = self._breadth_from_spot_cache()
+            if breadth is None:
+                # 缓存不存在/过期，与指数、北向资金并行获取（总超时6秒）
+                futures: dict = {}
+                with ThreadPoolExecutor(max_workers=4) as executor:
+                    futures["sh"] = executor.submit(_fetch_sh_index)
+                    futures["sz"] = executor.submit(_fetch_sz_index)
+                    futures["north"] = executor.submit(_fetch_north_flow)
+                    futures["breadth"] = executor.submit(self._fetch_market_breadth_from_api)
+
+                    done, _ = wait(futures.values(), timeout=3.0)
+                    for f in set(futures.values()) - done:
+                        f.cancel()
+
+                sh_data = futures["sh"].result() if futures["sh"] in done else None
+                if sh_data:
+                    result["indices"]["sh"] = sh_data
+
+                sz_data = futures["sz"].result() if futures["sz"] in done else None
+                if isinstance(sz_data, dict):
+                    result["indices"].update(sz_data)
+
+                north_flow = futures["north"].result() if futures["north"] in done else 0
+                result["north_flow"] = north_flow or 0
+
+                breadth = futures["breadth"].result() if futures["breadth"] in done else None
+                breadth = breadth or {}
+            else:
+                # 已有 spot cache，只需并行获取指数和北向资金（总超时6秒）
+                futures: dict = {}
+                with ThreadPoolExecutor(max_workers=3) as executor:
+                    futures["sh"] = executor.submit(_fetch_sh_index)
+                    futures["sz"] = executor.submit(_fetch_sz_index)
+                    futures["north"] = executor.submit(_fetch_north_flow)
+
+                    done, _ = wait(futures.values(), timeout=3.0)
+                    for f in set(futures.values()) - done:
+                        f.cancel()
+
+                sh_data = futures["sh"].result() if futures["sh"] in done else None
+                if sh_data:
+                    result["indices"]["sh"] = sh_data
+
+                sz_data = futures["sz"].result() if futures["sz"] in done else None
+                if isinstance(sz_data, dict):
+                    result["indices"].update(sz_data)
+
+                north_flow = futures["north"].result() if futures["north"] in done else 0
+                result["north_flow"] = north_flow or 0
+
             result["advance_count"] = breadth.get("up", 0)
             result["decline_count"] = breadth.get("down", 0)
 
-            # 3. 北向资金
-            try:
-                for fn_name in [
-                    "stock_hsgt_fund_flow_summary_em",
-                    "stock_hsgt_hist_em",
-                ]:
-                    fn = getattr(ak, fn_name, None)
-                    if fn:
-                        try:
-                            df = fn()
-                            if df is not None and not df.empty:
-                                latest = df.iloc[-1]
-                                result["north_flow"] = _safe_float(
-                                    latest.get("当日成交净买额")
-                                    or latest.get("沪股通净买额")
-                                    or 0
-                                ) or 0
-                                break
-                        except Exception as e:
-                            logger.debug("市场北向资金数据源 %s 失败: %s", fn_name, e)
-                            continue
-            except Exception as e:
-                logger.debug("获取北向资金失败: %s", e)
-
-            # 4. 市场状态
+            # 市场状态
             from tools.market_state import detect_market_state
 
-            sh_data = result["indices"].get("sh", {})
+            sh_change = result["indices"].get("sh", {}).get("change_pct", 0)
             result["market_state"] = detect_market_state({
-                "sh_change_20d": sh_data.get("change_pct", 0) / 100 if sh_data else 0,
+                "sh_change_20d": sh_change / 100 if sh_change else 0,
                 "advance_count": result["advance_count"],
                 "decline_count": result["decline_count"],
                 "volume": 0,
@@ -1191,6 +1330,36 @@ class DatabaseFirstDataBus:
 
         return result if result["indices"] or result["advance_count"] else None
 
+    def _breadth_from_spot_cache(self) -> dict | None:
+        """从全量快照缓存计算市场广度（避免重复API）。"""
+        cache = DatabaseFirstDataBus._spot_cache
+        cache_time = DatabaseFirstDataBus._spot_cache_time
+        if cache is None or cache_time is None:
+            return None
+        age = (datetime.now() - cache_time).total_seconds()
+        if age > DatabaseFirstDataBus._spot_cache_ttl:
+            return None
+        change_pcts = [
+            _safe_float(v.get("change_pct"))
+            for v in cache.values()
+            if _safe_float(v.get("change_pct")) is not None
+        ]
+        total = len(change_pcts)
+        if total == 0:
+            return None
+        up = sum(1 for p in change_pcts if p > 0)
+        down = sum(1 for p in change_pcts if p < 0)
+        flat = sum(1 for p in change_pcts if p == 0)
+        return {
+            "total": total,
+            "up": up,
+            "down": down,
+            "flat": flat,
+            "limit_up": sum(1 for p in change_pcts if p >= 9.5),
+            "limit_down": sum(1 for p in change_pcts if p <= -9.5),
+            "up_ratio": round(up / total * 100, 1),
+        }
+
     # ══════════════════════════════════════════
     # 数据快照通用方法（market_snapshot 表）
     # ══════════════════════════════════════════
@@ -1198,7 +1367,7 @@ class DatabaseFirstDataBus:
     def _query_snapshot(self, snapshot_type: str) -> dict | None:
         """从 market_snapshot 表查询JSON快照。"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             cursor = conn.execute(
                 "SELECT data_json, updated_at FROM market_snapshot WHERE snapshot_type=?",
                 (snapshot_type,),
@@ -1217,7 +1386,7 @@ class DatabaseFirstDataBus:
 
     def _save_snapshot(self, snapshot_type: str, data: Any):
         """保存JSON快照到 market_snapshot 表。"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         conn.execute(
             "INSERT OR REPLACE INTO market_snapshot "
             "(snapshot_type, trade_date, data_json, updated_at) "
@@ -1278,18 +1447,20 @@ class DatabaseFirstDataBus:
                         "turnover_rate": _safe_float(r.get("换手率")),
                     })
                 # 更新缓存
-                DatabaseFirstDataBus._spot_cache = {
-                    s["stock_code"]: s for s in stocks
-                }
-                DatabaseFirstDataBus._spot_cache_time = datetime.now()
-                DatabaseFirstDataBus._spot_cache_failed = False
+                with DatabaseFirstDataBus._spot_cache_lock:
+                    DatabaseFirstDataBus._spot_cache = {
+                        s["stock_code"]: s for s in stocks
+                    }
+                    DatabaseFirstDataBus._spot_cache_time = datetime.now()
+                    DatabaseFirstDataBus._spot_cache_failed = False
                 logger.info("全市场快照从API获取: %d只", len(stocks))
         except ImportError:
             logger.warning("akshare未安装，无法获取全市场快照")
         except Exception as e:
             logger.warning("获取全市场快照失败: %s", e)
-            DatabaseFirstDataBus._spot_cache_failed = True
-            DatabaseFirstDataBus._spot_cache_fail_time = datetime.now()
+            with DatabaseFirstDataBus._spot_cache_lock:
+                DatabaseFirstDataBus._spot_cache_failed = True
+                DatabaseFirstDataBus._spot_cache_fail_time = datetime.now()
 
         # 3. 保存到数据库
         if stocks:
@@ -1415,7 +1586,14 @@ class DatabaseFirstDataBus:
         return self._load_adapters()
 
     def _load_adapters(self) -> list:
-        """动态加载所有可用的数据源适配器，并按优先级排序（数字越小越优先）。"""
+        """动态加载所有可用的数据源适配器，并按优先级排序（数字越小越优先）。
+
+        适配器按线程缓存，避免每次请求都重建 HTTP 客户端。
+        """
+        adapters = getattr(self._adapter_local, "adapters", None)
+        if adapters is not None:
+            return adapters
+
         adapters: list = []
         candidates = [
             "providers.sources.tencent.TencentAdapter",
@@ -1436,6 +1614,7 @@ class DatabaseFirstDataBus:
                 pass
         # 按 priority 升序排列，priority 数字越小优先级越高
         adapters.sort(key=lambda a: getattr(a, "priority", 99))
+        self._adapter_local.adapters = adapters
         return adapters
 
     def _get_spot_data(self, code: str) -> dict | None:
@@ -1447,25 +1626,26 @@ class DatabaseFirstDataBus:
 
         pure = StockCodeNormalizer.to_db(code)
 
-        # 检查缓存是否有效
+        # 检查缓存是否有效（线程安全读取）
         now = datetime.now()
-        if (
-            DatabaseFirstDataBus._spot_cache is not None
-            and DatabaseFirstDataBus._spot_cache_time is not None
-            and (now - DatabaseFirstDataBus._spot_cache_time).total_seconds()
-            < DatabaseFirstDataBus._spot_cache_ttl
-        ):
-            return DatabaseFirstDataBus._spot_cache.get(pure)
+        with DatabaseFirstDataBus._spot_cache_lock:
+            if (
+                DatabaseFirstDataBus._spot_cache is not None
+                and DatabaseFirstDataBus._spot_cache_time is not None
+                and (now - DatabaseFirstDataBus._spot_cache_time).total_seconds()
+                < DatabaseFirstDataBus._spot_cache_ttl
+            ):
+                return DatabaseFirstDataBus._spot_cache.get(pure)
 
-        # 检查是否刚刚失败过（60秒内不重试）
-        if (
-            DatabaseFirstDataBus._spot_cache_failed
-            and DatabaseFirstDataBus._spot_cache_fail_time
-            and (now - DatabaseFirstDataBus._spot_cache_fail_time).total_seconds() < 60
-        ):
-            return None
+            # 检查是否刚刚失败过（60秒内不重试）
+            if (
+                DatabaseFirstDataBus._spot_cache_failed
+                and DatabaseFirstDataBus._spot_cache_fail_time
+                and (now - DatabaseFirstDataBus._spot_cache_fail_time).total_seconds() < 60
+            ):
+                return None
 
-        # 缓存过期或不存在，重新获取
+        # 缓存过期或不存在，重新获取（锁外执行API调用，避免阻塞其他线程）
         try:
             import akshare as ak
 
@@ -1485,18 +1665,21 @@ class DatabaseFirstDataBus:
                         "pb_ratio": _safe_float(r.get("市净率")),
                         "turnover_rate": _safe_float(r.get("换手率")),
                     }
-                DatabaseFirstDataBus._spot_cache = cache
-                DatabaseFirstDataBus._spot_cache_time = now
-                DatabaseFirstDataBus._spot_cache_failed = False
+                with DatabaseFirstDataBus._spot_cache_lock:
+                    DatabaseFirstDataBus._spot_cache = cache
+                    DatabaseFirstDataBus._spot_cache_time = now
+                    DatabaseFirstDataBus._spot_cache_failed = False
                 logger.info("全量快照缓存已更新: %d只股票", len(cache))
                 return cache.get(pure)
-            DatabaseFirstDataBus._spot_cache_failed = True
-            DatabaseFirstDataBus._spot_cache_fail_time = now
+            with DatabaseFirstDataBus._spot_cache_lock:
+                DatabaseFirstDataBus._spot_cache_failed = True
+                DatabaseFirstDataBus._spot_cache_fail_time = now
         except ImportError:
             logger.warning("akshare未安装")
         except Exception as e:
             logger.warning("获取全量快照失败: %s", e)
-            DatabaseFirstDataBus._spot_cache_failed = True
-            DatabaseFirstDataBus._spot_cache_fail_time = now
+            with DatabaseFirstDataBus._spot_cache_lock:
+                DatabaseFirstDataBus._spot_cache_failed = True
+                DatabaseFirstDataBus._spot_cache_fail_time = now
 
         return None

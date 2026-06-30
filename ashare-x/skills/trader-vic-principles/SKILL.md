@@ -2,8 +2,10 @@
 name: trader-vic-principles
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - market_analyst
+  - portfolio_manager
+max_tokens: 3000
+priority: 5
 description: 专业投机原理 - 可执行决策技能手册
 triggers:
   - "斯波朗迪"

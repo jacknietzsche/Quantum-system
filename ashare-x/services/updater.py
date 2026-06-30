@@ -15,8 +15,6 @@ from providers.data_bus import DatabaseFirstDataBus
 
 logger = logging.getLogger("ashare-x.services.updater")
 
-_bus = DatabaseFirstDataBus()
-
 
 class _DailyUpdateStats(TypedDict, total=False):
     started_at: str

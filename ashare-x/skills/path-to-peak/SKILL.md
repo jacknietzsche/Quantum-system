@@ -2,8 +2,10 @@
 name: path-to-peak
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - portfolio_manager
+  - research_manager
+max_tokens: 3000
+priority: 5
 description: 登峰之路 - 可执行决策技能手册
 triggers:
   - "登峰"

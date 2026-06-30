@@ -80,7 +80,36 @@ app.include_router(data_router)
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    """健康检查 — 返回前端Dashboard所需的状态信息。"""
+    data_count = 0
+    reports_count = 0
+    try:
+        import sqlite3
+
+        from core.config import Config
+
+        cfg = Config()
+        db_path = cfg.get("runtime.db_path", "runtime/investment.db")
+        if Path(db_path).exists():
+            conn = sqlite3.connect(str(db_path))
+            try:
+                data_count = conn.execute("SELECT COUNT(*) FROM kline_daily").fetchone()[0]
+            except Exception:
+                pass
+            try:
+                reports_count = conn.execute("SELECT COUNT(*) FROM reports").fetchone()[0]
+            except Exception:
+                pass
+            conn.close()
+    except Exception:
+        pass
+
+    return {
+        "status": "ok",
+        "version": app.version,
+        "data_count": data_count,
+        "reports": reports_count,
+    }
 
 
 # Serve static frontend

@@ -18,6 +18,7 @@ class TencentAdapter(SourceAdapter):
 
     BASE_URL = "https://qt.gtimg.cn"
     KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+    kline_priority = 1  # K 线新浪失败后 fallback 到腾讯
 
     def __init__(self):
         super().__init__(name="tencent", priority=1, timeout=10)

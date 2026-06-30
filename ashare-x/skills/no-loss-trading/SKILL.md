@@ -2,8 +2,10 @@
 name: no-loss-trading
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - conservative_analyst
+  - portfolio_manager
+max_tokens: 3000
+priority: 5
 description: 不亏：职业投资人的股市生存之道 - 可执行决策技能手册
 triggers:
   - "不亏"

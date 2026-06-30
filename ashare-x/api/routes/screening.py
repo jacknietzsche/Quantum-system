@@ -25,34 +25,36 @@ class ScreeningResult(BaseModel):
 
 @router.get("/screening")
 async def get_screening(style: str = "balanced", limit: int = 20):
-    """获取选股结果（从数据库获取股票数据后多因子打分）。"""
+    """获取选股结果（一次性查 DB 全字段，避免循环调网络 API）。"""
     try:
+        import sqlite3
+
         from providers.data_bus import DatabaseFirstDataBus
         from services.screening import rank_stocks
 
         bus = DatabaseFirstDataBus()
 
-        # 从数据库获取所有已缓存的股票
-        import sqlite3
-
+        # 一次查询 stock_info 表所有字段，避免循环调 bus.get_stock_info 触发网络回源
         conn = sqlite3.connect(bus.db_path)
-        cursor = conn.execute("SELECT stock_code, stock_name FROM stock_info LIMIT 200")
-        stocks = [
-            {"stock_code": r[0], "stock_name": r[1]}
-            for r in cursor.fetchall()
-        ]
-        conn.close()
+        try:
+            cursor = conn.execute(
+                "SELECT stock_code, stock_name, category, industry, pe_ratio, "
+                "pb_ratio, roe, latest_price, change_pct, volume, amount, "
+                "turnover_rate, ma5, ma20, ma60, rsi_14, macd "
+                "FROM stock_info LIMIT 200"
+            )
+            col_names = [d[0] for d in cursor.description]
+            stocks = [
+                {name: val for name, val in zip(col_names, row)}
+                for row in cursor.fetchall()
+            ]
+        finally:
+            conn.close()
 
         if not stocks:
             return {"stocks": [], "style": style, "message": "数据库无股票数据，请先刷新数据"}
 
-        # 补充基本面数据
-        for s in stocks:
-            info = bus.get_stock_info(s["stock_code"])
-            if info:
-                s.update(info)
-
-        # 打分排名
+        # 打分排名（rank_stocks 内部会基于已有字段计算 value/growth/momentum/quality 分数）
         ranked = rank_stocks(stocks, style=style, top_n=limit)
 
         results = [

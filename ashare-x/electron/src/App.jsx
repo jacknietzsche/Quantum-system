@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 import Analysis from './pages/Analysis'
 import Backtest from './pages/Backtest'
@@ -45,14 +46,16 @@ export default function App() {
           <h2 className="text-lg font-bold">{pageTitles[page] || page}</h2>
         </header>
         <div className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin">
-          {page === 'dashboard' && <Dashboard />}
-          {page === 'analysis' && <Analysis />}
-          {page === 'screening' && <Screening />}
-          {page === 'backtest' && <Backtest />}
-          {page === 'tradingplan' && <TradingPlan />}
-          {page === 'data' && <Data />}
-          {page === 'reports' && <Reports />}
-          {page === 'settings' && <Settings />}
+          <ErrorBoundary key={page}>
+            {page === 'dashboard' && <Dashboard />}
+            {page === 'analysis' && <Analysis />}
+            {page === 'screening' && <Screening />}
+            {page === 'backtest' && <Backtest />}
+            {page === 'tradingplan' && <TradingPlan />}
+            {page === 'data' && <Data />}
+            {page === 'reports' && <Reports />}
+            {page === 'settings' && <Settings />}
+          </ErrorBoundary>
         </div>
       </main>
     </div>

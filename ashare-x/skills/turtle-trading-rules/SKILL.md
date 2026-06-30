@@ -2,8 +2,10 @@
 name: turtle-trading-rules
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - market_analyst
+  - trader
+max_tokens: 3000
+priority: 5
 description: 海龟交易法则 - 可执行决策技能手册
 triggers:
   - "海龟"

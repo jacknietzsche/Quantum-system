@@ -31,7 +31,11 @@ class TestHealth:
     def test_health(self, client: TestClient):
         resp = client.get("/api/health")
         assert resp.status_code == 200
-        assert resp.json() == {"status": "ok"}
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert "version" in data
+        assert "data_count" in data
+        assert "reports" in data
 
 
 class TestAnalysisRoutes:
@@ -191,12 +195,16 @@ class TestDataRoutes:
     def test_refresh_data_all(self, client: TestClient, mock_updater):
         resp = client.post("/api/data/refresh")
         assert resp.status_code == 200
-        assert resp.json()["status"] == "ok"
+        data = resp.json()
+        assert data["status"] == "running"
+        assert "job_id" in data
 
     def test_incremental_refresh(self, client: TestClient, mock_updater):
         resp = client.post("/api/data/incremental-refresh?days=30")
         assert resp.status_code == 200
-        assert resp.json()["stats"]["refreshed"] == 3
+        data = resp.json()
+        assert data["status"] == "running"
+        assert "job_id" in data
 
     def test_get_stats_empty_db(self, client: TestClient, mock_bus):
         resp = client.get("/api/data/stats")
@@ -315,8 +323,15 @@ class TestScreeningRoutes:
 
         db_path = tmp_path / "test.db"
         conn = sqlite3.connect(str(db_path))
-        conn.execute("CREATE TABLE stock_info (stock_code TEXT, stock_name TEXT)")
-        conn.execute("INSERT INTO stock_info VALUES ('600519', '茅台')")
+        conn.execute(
+            "CREATE TABLE stock_info ("
+            "stock_code TEXT, stock_name TEXT, category TEXT, industry TEXT, "
+            "pe_ratio REAL, pb_ratio REAL, roe REAL, latest_price REAL, "
+            "change_pct REAL, volume REAL, amount REAL, turnover_rate REAL, "
+            "ma5 REAL, ma20 REAL, ma60 REAL, rsi_14 REAL, macd REAL, "
+            "created_at TEXT, updated_at TEXT)"
+        )
+        conn.execute("INSERT INTO stock_info (stock_code, stock_name) VALUES ('600519', '茅台')")
         conn.commit()
         conn.close()
 

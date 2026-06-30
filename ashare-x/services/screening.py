@@ -11,6 +11,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _get(stock: dict, key: str, default: float) -> float:
+    """获取字段值，显式处理 None。"""
+    val = stock.get(key, default)
+    return default if val is None else val
+
+
 def compute_stock_score(stock: dict, style: str = "balanced") -> float:
     """
     多因子评分公式（0-100分）:
@@ -28,9 +34,9 @@ def compute_stock_score(stock: dict, style: str = "balanced") -> float:
     w = weights.get(style, weights["balanced"])
 
     # 价值因子
-    pe = stock.get("pe_ratio", 50)
-    pb = stock.get("pb_ratio", 5)
-    div = stock.get("dividend_yield", 0) * 100
+    pe = _get(stock, "pe_ratio", 50)
+    pb = _get(stock, "pb_ratio", 5)
+    div = _get(stock, "dividend_yield", 0) * 100
     value_score = max(
         0,
         min(
@@ -40,21 +46,27 @@ def compute_stock_score(stock: dict, style: str = "balanced") -> float:
     )
 
     # 成长因子
-    rev_growth = stock.get("revenue_growth", 0) * 100
-    profit_growth = stock.get("profit_growth", 0) * 100
+    rev_growth = _get(stock, "revenue_growth", 0) * 100
+    profit_growth = _get(stock, "profit_growth", 0) * 100
     growth_score = max(0, min(100, (rev_growth + profit_growth) / 2 + 50))
 
     # 动量因子
-    change_20d = stock.get("change_pct_20d", 0) * 100
+    change_20d = _get(stock, "change_pct_20d", 0) * 100
     momentum_price = max(0, min(100, 100 - abs(change_20d - 10) * 5))
-    rsi = stock.get("rsi_14", 50)
+    rsi = _get(stock, "rsi_14", 50)
     momentum_rsi = max(0, min(100, 100 - abs(rsi - 55) * 3))
     momentum_score = momentum_price * 0.5 + momentum_rsi * 0.5
 
     # 质量因子
-    roe = stock.get("roe", 0) * 100
+    roe = _get(stock, "roe", 0) * 100
     quality_roe = max(0, min(100, roe * 3))
     quality_score = quality_roe
+
+    # 保存分项得分供前端展示
+    stock["value_score"] = value_score
+    stock["growth_score"] = growth_score
+    stock["momentum_score"] = momentum_score
+    stock["quality_score"] = quality_score
 
     # 加权总分
     total = (
@@ -73,7 +85,7 @@ def hard_filter(stock: dict, config: dict | None = None) -> bool:
         return False
     if stock.get("listing_days", 999) < config.get("exclude_new_days", 60):
         return False
-    if stock.get("amount", 0) < config.get("min_turnover", 5_000_000):
+    if stock.get("amount", 0) < config.get("min_turnover", 5_000):
         return False
     return not stock.get("is_suspended", False)
 

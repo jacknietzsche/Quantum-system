@@ -2,8 +2,11 @@
 name: speculator-33-rules
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - trader
+  - portfolio_manager
+  - conservative_analyst
+max_tokens: 3000
+priority: 5
 description: 炒家33篇 - 可执行决策技能手册
 triggers:
   - "炒家"

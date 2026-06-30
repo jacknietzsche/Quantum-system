@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import api from '../api'
+import api, { API_BASE } from '../api'
 import ErrorAlert from '../components/ErrorAlert'
 import { validateStockCode } from '../utils/validation'
 
@@ -59,42 +59,64 @@ export default function Analysis() {
   useEffect(() => {
     if (!job?.job_id) return
 
-    const es = new EventSource(`http://127.0.0.1:8765/api/stream/${job.job_id}`)
+    const es = new EventSource(`${API_BASE}/api/stream/${job.job_id}`)
     esRef.current = es
 
-    es.onmessage = (e) => {
+    const handleProgress = (e) => {
       try {
         const payload = JSON.parse(e.data)
-        if (e.lastEventId === 'progress' || payload.progress !== undefined) {
-          setProgress(payload.progress || 0)
-        }
-        if (e.lastEventId === 'agent_status' || payload.agent) {
-          setAgents((prev) => {
-            const idx = prev.findIndex((a) => a.agent === payload.agent)
-            if (idx >= 0) {
-              const next = [...prev]
-              next[idx] = payload
-              return next
-            }
-            return [...prev, payload]
-          })
-        }
-        if (e.lastEventId === 'log' || payload.message) {
-          setLogs((prev) => [...prev.slice(-99), payload])
-        }
-        if (e.lastEventId === 'done' || payload.status) {
-          if (payload.status === 'completed') {
-            fetchResult(job.job_id)
-          } else if (payload.status === 'failed') {
-            setError(payload.error || '分析失败')
-          }
-          setLoading(false)
-          es.close()
-        }
+        setProgress(Math.min(Math.max(payload.progress || 0, 0), 100))
       } catch {
         // ignore
       }
     }
+
+    const handleAgentStatus = (e) => {
+      try {
+        const payload = JSON.parse(e.data)
+        setAgents((prev) => {
+          const idx = prev.findIndex((a) => a.agent === payload.agent)
+          if (idx >= 0) {
+            const next = [...prev]
+            next[idx] = payload
+            return next
+          }
+          return [...prev, payload]
+        })
+      } catch {
+        // ignore
+      }
+    }
+
+    const handleLog = (e) => {
+      try {
+        const payload = JSON.parse(e.data)
+        setLogs((prev) => [...prev.slice(-99), payload])
+      } catch {
+        // ignore
+      }
+    }
+
+    const handleDone = (e) => {
+      try {
+        const payload = JSON.parse(e.data)
+        if (payload.status === 'completed') {
+          fetchResult(job.job_id)
+        } else if (payload.status === 'failed') {
+          setError(payload.error || payload.result?.error || '分析失败')
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false)
+        es.close()
+      }
+    }
+
+    es.addEventListener('progress', handleProgress)
+    es.addEventListener('agent_status', handleAgentStatus)
+    es.addEventListener('log', handleLog)
+    es.addEventListener('done', handleDone)
 
     es.onerror = () => {
       es.close()
@@ -105,7 +127,8 @@ export default function Analysis() {
           if (status?.status === 'completed') {
             fetchResult(job.job_id)
           } else if (status?.status === 'failed') {
-            setError(status.error || '分析失败')
+            const detail = status.error || status.result?.error || '分析失败'
+            setError(detail)
           } else {
             setError('实时连接中断')
           }
@@ -114,7 +137,13 @@ export default function Analysis() {
         .finally(() => setLoading(false))
     }
 
-    return () => es.close()
+    return () => {
+      es.removeEventListener('progress', handleProgress)
+      es.removeEventListener('agent_status', handleAgentStatus)
+      es.removeEventListener('log', handleLog)
+      es.removeEventListener('done', handleDone)
+      es.close()
+    }
   }, [job, fetchResult])
 
   return (

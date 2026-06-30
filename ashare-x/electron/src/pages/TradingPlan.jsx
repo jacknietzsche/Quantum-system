@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import api from '../api'
 import ErrorAlert from '../components/ErrorAlert'
 
@@ -11,6 +11,13 @@ export default function TradingPlan() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const intervalRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
 
   const fetchToday = async () => {
     try {
@@ -50,6 +57,7 @@ export default function TradingPlan() {
             const status = await api.get(`/trading-plan/run/${job.job_id}`)
             if (status?.status !== 'running') {
               clearInterval(interval)
+              intervalRef.current = null
               setRunning(false)
               if (status?.result?.error) {
                 setError(status.result.error)
@@ -65,6 +73,7 @@ export default function TradingPlan() {
             setError('查询任务状态失败')
           }
         }, 2000)
+        intervalRef.current = interval
       } else {
         setRunning(false)
         setError('启动分析失败')

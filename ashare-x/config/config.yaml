@@ -13,7 +13,7 @@ llm:
   # 快速思维: 工具调用、状态更新（V4-Flash，高并发、低成本）
   quick_think:
     provider: deepseek
-    model: deepseek-chat              # V4-Flash 路由别名
+    model: deepseek-v4-pro            # 用户指定模型
     temperature: 0.7
     max_tokens: 4000
     enable_cache: true                # 命中 prompt 缓存（cached_input 单独计价）
@@ -21,7 +21,7 @@ llm:
   # 深度思维: 复杂推理、报告生成（V4-Pro）
   deep_think:
     provider: deepseek
-    model: deepseek-reasoner          # V4-Pro 路由别名
+    model: deepseek-v4-pro            # 用户指定模型
     temperature: 0.7
     max_tokens: 8000
     enable_cache: true

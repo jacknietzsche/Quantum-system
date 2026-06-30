@@ -228,6 +228,10 @@ def run_react_agent(
             # 调用LLM（带工具定义）
             provider = llm_client.config.get("llm.quick_think.provider", "deepseek")
             model = llm_client.config.get("llm.quick_think.model", "deepseek-chat")
+            # Fallback to the config keys that llm_client.complete actually uses
+            if not llm_client.config.get("llm.quick_think.model"):
+                provider = llm_client.config.get("llm.quick.provider", provider)
+                model = llm_client.config.get("llm.quick.model", model)
             client = llm_client._get_client(provider)
 
             response = client.chat.completions.create(
@@ -307,6 +311,10 @@ def run_react_agent(
 
     # 最终调用（不带工具）
     try:
+        if "client" not in dir() or client is None:
+            provider = llm_client.config.get("llm.quick.provider", "deepseek")
+            model = llm_client.config.get("llm.quick.model", "deepseek-chat")
+            client = llm_client._get_client(provider)
         response = client.chat.completions.create(
             model=model,
             messages=messages,

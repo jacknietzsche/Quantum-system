@@ -6,10 +6,13 @@ SKILL.md格式：frontmatter元数据 + 正文prompt。
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+
+logger = logging.getLogger("ashare-x.skills.engine")
 
 
 @dataclass
@@ -17,14 +20,23 @@ class SkillMetadata:
     """Skill元数据。"""
 
     name: str
-    version: str
-    description: str
-    triggers: list[str]
-    agents: list[str]
+    version: str = "1.0"
+    description: str = ""
+    triggers: list[str] = None  # type: ignore[assignment]
+    agents: list[str] = None  # type: ignore[assignment]
     priority: int = 10
     max_tokens: int = 2000
     category: str = "general"
     language: str = "zh"
+
+    def __post_init__(self):
+        if self.triggers is None:
+            self.triggers = []
+        if self.agents is None:
+            self.agents = []
+        # Ensure version is always a string
+        if not isinstance(self.version, str):
+            self.version = str(self.version)
 
 
 @dataclass
@@ -38,7 +50,11 @@ class SkillContent:
 class SkillEngine:
     """Skill引擎。"""
 
-    def __init__(self, skills_dir: str = "skills/"):
+    def __init__(self, skills_dir: str | None = None):
+        if skills_dir is None:
+            # Use absolute path anchored to project root to avoid CWD issues
+            project_root = Path(__file__).resolve().parent.parent
+            skills_dir = str(project_root / "skills")
         self.skills_dir = Path(skills_dir)
         self.registry: dict[str, SkillContent] = {}
         self._loaded = False
@@ -46,6 +62,7 @@ class SkillEngine:
     def discover(self):
         """扫描skills/目录，发现所有可用Skill。"""
         if not self.skills_dir.exists():
+            logger.warning("Skills目录不存在: %s", self.skills_dir)
             return
 
         for skill_dir in self.skills_dir.iterdir():
@@ -58,6 +75,7 @@ class SkillEngine:
                     self.registry[content.metadata.name] = content
 
         self._loaded = True
+        logger.info("SkillEngine已加载 %d 个技能", len(self.registry))
 
     def _parse_skill(self, path: Path) -> SkillContent | None:
         """解析SKILL.md文件。"""
@@ -92,7 +110,13 @@ class SkillEngine:
         skills = [s for s in self.registry.values() if agent_name in s.metadata.agents]
         return sorted(skills, key=lambda s: s.metadata.priority)
 
+    def get_all_skills(self) -> list[SkillContent]:
+        """获取所有已加载的Skill。"""
+        if not self._loaded:
+            self.discover()
+        return list(self.registry.values())
+
     def activate(self, name: str) -> str | None:
-        """激活Skill，返回注入prompt的内容。"""
+        """激活Skill，返回注入prompt的内容（向后兼容）。"""
         skill = self.get_skill(name)
         return skill.prompt if skill else None

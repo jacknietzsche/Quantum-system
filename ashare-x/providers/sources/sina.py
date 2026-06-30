@@ -13,6 +13,7 @@ class SinaAdapter(SourceAdapter):
     """新浪行情适配器。"""
 
     BASE_URL = "https://hq.sinajs.cn"
+    kline_priority = 0  # K 线优先使用新浪（速度快）
 
     def __init__(self):
         super().__init__(name="sina", priority=2, timeout=10)

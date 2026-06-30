@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import api from '../api'
 
+function formatPercent(value) {
+  if (value === undefined || value === null || value === '') return '-'
+  if (typeof value === 'string') {
+    const num = parseFloat(value.replace('%', ''))
+    return Number.isFinite(num) ? `${num.toFixed(2)}%` : value
+  }
+  return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '-'
+}
+
 export default function Backtest() {
   const [codes, setCodes] = useState('600519')
   const [strategy, setStrategy] = useState('ma_cross')
@@ -17,13 +26,28 @@ export default function Backtest() {
   }, [])
 
   const runBacktest = async () => {
+    const parsedCodes = codes.split(/[,，\s]+/).filter(Boolean)
+    if (!parsedCodes.length) {
+      setResult({ error: '请输入至少一个股票代码' })
+      return
+    }
+    const parsedDays = Number(days)
+    if (!parsedDays || parsedDays < 30) {
+      setResult({ error: '回测天数至少30天' })
+      return
+    }
+    const parsedCapital = Number(capital)
+    if (!parsedCapital || parsedCapital <= 0) {
+      setResult({ error: '初始资金必须大于0' })
+      return
+    }
     setLoading(true)
     try {
       const data = await api.post('/backtest', {
-        stock_codes: codes.split(/[,，\s]+/).filter(Boolean),
+        stock_codes: parsedCodes,
         strategy,
-        days,
-        initial_capital: capital,
+        days: parsedDays,
+        initial_capital: parsedCapital,
       })
       setResult(data)
     } catch (err) {
@@ -65,19 +89,45 @@ export default function Backtest() {
           <div>
             <label className="block text-sm text-slate-400 mb-1">回测天数</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
               className="w-full bg-slate-850 border border-slate-700 rounded-lg px-3 py-2 text-sm"
               value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
+              onFocus={(e) => e.target.select()}
+              onClick={(e) => e.target.select()}
+              onKeyDown={(e) => e.target.select()}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
+                setDays(raw ? Number(raw) : '')
+              }}
+              onBlur={(e) => {
+                const num = Number(e.target.value)
+                if (!num || num <= 0) setDays(250)
+              }}
             />
           </div>
           <div>
             <label className="block text-sm text-slate-400 mb-1">初始资金</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
               className="w-full bg-slate-850 border border-slate-700 rounded-lg px-3 py-2 text-sm"
               value={capital}
-              onChange={(e) => setCapital(Number(e.target.value))}
+              onFocus={(e) => e.target.select()}
+              onClick={(e) => e.target.select()}
+              onKeyDown={(e) => e.target.select()}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 12)
+                setCapital(raw ? Number(raw) : '')
+              }}
+              onBlur={(e) => {
+                const num = Number(e.target.value)
+                if (!num || num <= 0) setCapital(1000000)
+              }}
             />
           </div>
         </div>
@@ -105,24 +155,24 @@ export default function Backtest() {
             <div className="p-3 bg-slate-850 rounded-lg">
               <div className="text-xs text-slate-400">总收益率</div>
               <div className="text-lg font-bold text-emerald-400">
-                {result.total_return ? `${(result.total_return * 100).toFixed(2)}%` : '-'}
+                {formatPercent(result.total_return)}
               </div>
             </div>
             <div className="p-3 bg-slate-850 rounded-lg">
               <div className="text-xs text-slate-400">年化收益</div>
               <div className="text-lg font-bold">
-                {result.annualized_return ? `${(result.annualized_return * 100).toFixed(2)}%` : '-'}
+                {formatPercent(result.annualized_return)}
               </div>
             </div>
             <div className="p-3 bg-slate-850 rounded-lg">
               <div className="text-xs text-slate-400">最大回撤</div>
               <div className="text-lg font-bold text-rose-400">
-                {result.max_drawdown ? `${(result.max_drawdown * 100).toFixed(2)}%` : '-'}
+                {formatPercent(result.max_drawdown)}
               </div>
             </div>
             <div className="p-3 bg-slate-850 rounded-lg">
               <div className="text-xs text-slate-400">夏普比率</div>
-              <div className="text-lg font-bold">{result.sharpe || '-'}</div>
+              <div className="text-lg font-bold">{result.sharpe ?? '-'}</div>
             </div>
           </div>
           {result.trades && (

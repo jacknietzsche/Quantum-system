@@ -21,6 +21,15 @@ ruff check .                # lint
 mypy .                     # typecheck
 pytest tests/ -v            # all tests
 pytest tests/unit/ -v       # unit tests only
+pytest tests/integration/test_api_contract.py -v --no-cov  # API contract tests
+
+# Frontend tests
+cd electron && npm run test           # vitest unit tests
+cd electron && npm run test:e2e       # playwright E2E tests
+
+# Unified test runner (all layers)
+python run_all_tests.py --skip-e2e    # backend + frontend unit (no browser)
+python run_all_tests.py              # full suite including E2E
 ```
 
 ## Repo Layout

@@ -254,16 +254,30 @@ class DailyPlanGenerator:
         pm_report = final_state.get("portfolio_manager_report", "")
         if pm_report:
             try:
-                json_match = re.search(r"\{[^{}]*\}", pm_report.replace("\n", " "))
-                if json_match:
-                    decision = json.loads(json_match.group())
-                    result["action"] = decision.get("rating", "Hold")
-                    result["confidence"] = decision.get("confidence", 50)
-                    result["entry_price"] = decision.get("entry_price")
-                    result["stop_loss"] = decision.get("stop_loss")
-                    result["take_profit"] = decision.get("take_profit")
-                    result["position_pct"] = decision.get("position_pct", 5.0)
-                    result["executive_summary"] = decision.get("executive_summary", "")
+                # Handle nested JSON by finding the outermost balanced braces
+                flat = pm_report.replace("\n", " ")
+                # Try finding a JSON object that may contain nested braces
+                start = flat.find("{")
+                if start >= 0:
+                    depth = 0
+                    end = -1
+                    for i, ch in enumerate(flat[start:], start):
+                        if ch == "{":
+                            depth += 1
+                        elif ch == "}":
+                            depth -= 1
+                            if depth == 0:
+                                end = i + 1
+                                break
+                    if end > start:
+                        decision = json.loads(flat[start:end])
+                        result["action"] = decision.get("rating", "Hold")
+                        result["confidence"] = decision.get("confidence", 50)
+                        result["entry_price"] = decision.get("entry_price")
+                        result["stop_loss"] = decision.get("stop_loss")
+                        result["take_profit"] = decision.get("take_profit")
+                        result["position_pct"] = decision.get("position_pct", 5.0)
+                        result["executive_summary"] = decision.get("executive_summary", "")
             except (json.JSONDecodeError, AttributeError):
                 result["thesis"] = pm_report[:500]
 

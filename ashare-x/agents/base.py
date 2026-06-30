@@ -42,14 +42,6 @@ _DATA_PROVIDERS: dict[str, str] = {
     "sentiment_analyst": "sentiment",
 }
 
-# 分析师Agent对应的量化预信号计算函数
-_QUANT_SIGNALS: dict[str, str] = {
-    "market_analyst": "technical",
-    "fundamentals_analyst": "fundamentals",
-    "news_analyst": "news",
-    "sentiment_analyst": "sentiment",
-}
-
 
 def _gather_technical_data(ticker: str) -> str:
     """获取技术指标数据，格式化为文本。"""
@@ -60,15 +52,19 @@ def _gather_technical_data(ticker: str) -> str:
         kline = data.get("kline")
         indicators = data.get("indicators")
 
-        if not kline:
-            return "⚠ 暂无K线数据"
+        if kline is None or (hasattr(kline, "empty") and kline.empty):
+            return "[!] No kline data"
 
-        # 取最近5天K线
-        recent = kline[-5:] if isinstance(kline, list) else []
+        # 取最近5天K线 (kline may be DataFrame or list[dict])
+        import pandas as pd
+        if isinstance(kline, pd.DataFrame):
+            recent = kline.tail(5).to_dict("records")
+        else:
+            recent = kline[-5:] if isinstance(kline, list) else []
         kline_text = "\n".join(
-            f"  {row.get('trade_date', '')}: 开{row.get('open', 0):.2f} "
-            f"高{row.get('high', 0):.2f} 低{row.get('low', 0):.2f} "
-            f"收{row.get('close', 0):.2f} 量{row.get('volume', 0):.0f}"
+            f"  {row.get('trade_date', '')}: O{row.get('open', 0):.2f} "
+            f"H{row.get('high', 0):.2f} L{row.get('low', 0):.2f} "
+            f"C{row.get('close', 0):.2f} V{row.get('volume', 0):.0f}"
             for row in recent
         )
 
@@ -82,15 +78,15 @@ def _gather_technical_data(ticker: str) -> str:
                 f"DIF={indicators.get('dif', 'N/A')}, "
                 f"DEA={indicators.get('dea', 'N/A')}\n"
                 f"  RSI14={indicators.get('rsi_14', 'N/A')}, "
-                f"BOLL上轨={indicators.get('boll_upper', 'N/A')}, "
-                f"BOLL下轨={indicators.get('boll_lower', 'N/A')}\n"
+                f"BOLL_U={indicators.get('boll_upper', 'N/A')}, "
+                f"BOLL_L={indicators.get('boll_lower', 'N/A')}\n"
                 f"  ATR14={indicators.get('atr_14', 'N/A')}"
             )
 
         return f"## 技术指标数据\n### 最近5日K线\n{kline_text}\n### 技术指标\n{ind_text}"
     except Exception as e:
         logger.warning("获取技术指标失败 %s: %s", ticker, e)
-        return f"⚠ 技术指标数据获取失败: {e}"
+        return f"[!]技术指标数据获取失败: {e}"
 
 
 def _gather_fundamentals_data(ticker: str) -> str:
@@ -100,7 +96,7 @@ def _gather_fundamentals_data(ticker: str) -> str:
 
         fund = get_fundamentals(ticker)
         if not fund:
-            return "⚠ 暂无基本面数据"
+            return "[!]暂无基本面数据"
 
         lines = ["## 基本面数据"]
         if fund.get("stock_name"):
@@ -135,7 +131,7 @@ def _gather_fundamentals_data(ticker: str) -> str:
         return "\n".join(lines)
     except Exception as e:
         logger.warning("获取基本面数据失败 %s: %s", ticker, e)
-        return f"⚠ 基本面数据获取失败: {e}"
+        return f"[!]基本面数据获取失败: {e}"
 
 
 def _gather_news_data(ticker: str) -> str:
@@ -169,7 +165,7 @@ def _gather_news_data(ticker: str) -> str:
         return "\n".join(lines)
     except Exception as e:
         logger.warning("获取新闻数据失败 %s: %s", ticker, e)
-        return f"⚠ 新闻数据获取失败: {e}"
+        return f"[!]新闻数据获取失败: {e}"
 
 
 def _gather_sentiment_data(ticker: str) -> str:
@@ -211,10 +207,10 @@ def _gather_sentiment_data(ticker: str) -> str:
         if sent.get("north_flow") is not None:
             lines.append(f"\n### 北向资金\n  持股: {sent['north_flow']}")
 
-        return "\n".join(lines) if len(lines) > 1 else "⚠ 暂无情绪数据"
+        return "\n".join(lines) if len(lines) > 1 else "[!]暂无情绪数据"
     except Exception as e:
         logger.warning("获取情绪数据失败 %s: %s", ticker, e)
-        return f"⚠ 情绪数据获取失败: {e}"
+        return f"[!]情绪数据获取失败: {e}"
 
 
 _DATA_GATHERERS = {
@@ -235,7 +231,7 @@ def _compute_quant_signal(agent_name: str, data_text: str) -> str:
             compute_technical_signal,
         )
 
-        signal_type = _QUANT_SIGNALS.get(agent_name)
+        signal_type = _DATA_PROVIDERS.get(agent_name)
         if signal_type == "technical":
             # 从文本中提取关键指标（简化解析）
             import re
@@ -322,6 +318,7 @@ def _gather_prior_reports(state: AgentState, agent_name: str) -> str:
         "aggressive_analyst": "aggressive_analyst_report",
         "conservative_analyst": "conservative_analyst_report",
         "neutral_analyst": "neutral_analyst_report",
+        "portfolio_manager": "portfolio_manager_report",
     }
 
     # 根据当前Agent决定需要收集哪些前序报告
@@ -337,6 +334,7 @@ def _gather_prior_reports(state: AgentState, agent_name: str) -> str:
         "aggressive_analyst",
         "conservative_analyst",
         "neutral_analyst",
+        "portfolio_manager",
     ]
 
     # 收集当前Agent之前的所有报告
@@ -438,8 +436,9 @@ def create_agent(
             engine = _get_skill_engine()
             skills = engine.get_for_agent(agent_name)
             if skills:
+                # max_tokens is actually max_chars (~2:1 char:token ratio for Chinese)
                 skill_text = "\n\n".join(
-                    f"## 投资技能: {s.metadata.name}\n{s.prompt[: s.metadata.max_tokens]}"
+                    f"## 投资技能: {s.metadata.name}\n{s.prompt[:s.metadata.max_tokens]}"
                     for s in skills
                 )
                 effective_prompt = f"{system_prompt}\n\n---\n# 可用投资技能\n{skill_text}"
@@ -500,6 +499,16 @@ def create_agent(
         except Exception as e:
             logger.error("Agent %s 执行失败: %s", agent_name, e)
             result = {f"{agent_name}_report": f"分析失败: {e}"}
+
+        # fundamentals_analyst 同时将结构化基本面数据写入state
+        if agent_name == "fundamentals_analyst" and data_type == "fundamentals":
+            try:
+                from tools.fundamentals import get_fundamentals
+                fund_data = get_fundamentals(ticker)
+                if fund_data:
+                    result["fundamentals"] = fund_data
+            except Exception:
+                pass
 
         # 辩论节点自动递增轮次，防止条件路由无限循环
         if agent_name in ("bull_researcher", "bear_researcher"):

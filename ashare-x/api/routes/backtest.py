@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException
@@ -68,11 +69,44 @@ async def run_backtest(req: BacktestRequest):
         from services.backtest import VectorbtBacktest
 
         engine = VectorbtBacktest(initial_capital=req.initial_capital)
-        return engine.run(
-            stock_codes=req.stock_codes,
-            strategy=req.strategy,
-            days=req.days,
-        )
+
+        # 加 30s 超时保护，避免底层 K 线网络回源卡死
+        loop = asyncio.get_event_loop()
+        try:
+            result = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: engine.run(
+                        stock_codes=req.stock_codes,
+                        strategy=req.strategy,
+                        days=req.days,
+                    ),
+                ),
+                timeout=30.0,
+            )
+        except (asyncio.TimeoutError, TimeoutError):
+            raise HTTPException(
+                504,
+                "回测超时（底层 K 线数据获取卡住），请先刷新数据后重试",
+            ) from None
+
+        # Frontend expects annualized_return and trades fields
+        if "annualized_return" not in result:
+            tr_str = str(result.get("total_return", "0%")).replace("%", "")
+            try:
+                tr = float(tr_str)
+                result["annualized_return"] = f"{tr * (250.0 / req.days):.2f}%"
+            except ValueError:
+                result["annualized_return"] = "0.00%"
+        if "trades" not in result:
+            trades = []
+            for code, metrics in result.get("per_stock", {}).items():
+                trades.append({"code": code, **metrics})
+            result["trades"] = trades
+
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("回测失败: %s", e, exc_info=True)
         raise HTTPException(500, str(e)) from e

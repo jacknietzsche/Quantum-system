@@ -2,8 +2,10 @@
 name: stock-market-winner
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - bull_researcher
+  - portfolio_manager
+max_tokens: 3000
+priority: 5
 description: 要做股市赢家 - 可执行决策技能手册
 triggers:
   - "赢家"

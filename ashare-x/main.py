@@ -383,7 +383,7 @@ def main():
 
     # serve
     serve_parser = subparsers.add_parser("serve", help="启动API服务器")
-    serve_parser.add_argument("--port", type=int, default=8765, help="端口号")
+    serve_parser.add_argument("--port", type=int, default=8766, help="端口号")
 
     # analyze
     analyze_parser = subparsers.add_parser("analyze", help="单股分析")

@@ -2,8 +2,10 @@
 name: candlestick-patterns
 version: 1.0
 agents:
-  - analyst
-  - reviewer
+  - market_analyst
+  - trader
+max_tokens: 3000
+priority: 5
 description: 日本蜡烛图技术新解 - 可执行决策技能手册
 triggers:
   - "蜡烛图"

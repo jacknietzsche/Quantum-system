@@ -31,21 +31,34 @@ export default function KLineChart({ data, height = 360 }) {
       wickDownColor: '#f43f5e',
     })
 
+    const normalizeDate = (d) => {
+      if (!d) return null
+      const s = typeof d === 'string' ? d : new Date(d).toISOString().slice(0, 10)
+      return s.replace(/\//g, '-')
+    }
+
     const sorted = [...data]
-      .filter((d) => d.date && d.open && d.high && d.low && d.close)
+      .map((d) => ({
+        ...d,
+        date: normalizeDate(d.date),
+      }))
+      .filter((d) => d.date != null && d.open != null && d.high != null && d.low != null && d.close != null)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-    series.setData(
-      sorted.map((d) => ({
-        time: d.date.replace(/-/g, '/'),
-        open: Number(d.open),
-        high: Number(d.high),
-        low: Number(d.low),
-        close: Number(d.close),
-      })),
-    )
-
-    chart.timeScale().fitContent()
+    try {
+      series.setData(
+        sorted.map((d) => ({
+          time: d.date,
+          open: Number(d.open),
+          high: Number(d.high),
+          low: Number(d.low),
+          close: Number(d.close),
+        })),
+      )
+      chart.timeScale().fitContent()
+    } catch (err) {
+      console.error('[KLineChart] setData failed:', err)
+    }
 
     const handleResize = () => {
       chart.applyOptions({ width: chartContainerRef.current.clientWidth })
